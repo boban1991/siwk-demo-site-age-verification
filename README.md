@@ -28,14 +28,26 @@ npm run dev
 
 ## Klarna Age Verification Integration
 
-The site includes a placeholder for Klarna Sign in with Klarna (SIWK) age verification. To complete the integration:
+The site is set up with Klarna age verification integration. The backend API endpoints are ready in `server.js`:
 
-1. Obtain Klarna API credentials
-2. Update the `initiateRealKlarnaVerification()` function in `src/scripts/main.js`
-3. Implement the Klarna SDK initialization and verification flow
-4. Handle the verification callback
+- `GET /api/klarna/config` - Returns public Klarna configuration
+- `POST /api/klarna/verify` - Initiates Klarna age verification
+- `GET /api/klarna/callback` - Handles Klarna verification callback
 
-Currently, the site uses a simulated verification flow for demonstration purposes.
+### Next Steps to Complete Integration
+
+1. **Add your Klarna credentials** (see Environment Variables section above)
+2. **Update the API implementation** in `server.js`:
+   - Replace the placeholder code in `/api/klarna/verify` with actual Klarna API calls
+   - Update `/api/klarna/callback` to verify the session with Klarna
+   - Use the Klarna API documentation for the exact endpoints and request/response formats
+
+3. **Test the integration**:
+   - Use sandbox credentials first
+   - Test the full verification flow
+   - Verify the callback handling works correctly
+
+The frontend is already configured to call these API endpoints. Once you add your credentials and complete the API implementation, the integration will be fully functional.
 
 ## Deployment to Vercel
 
@@ -87,11 +99,63 @@ The `vercel.json` file is already configured for Node.js/Express deployment.
 
 ## Environment Variables
 
-For production, you may want to set these environment variables in Vercel:
+### Setting Up Klarna Credentials in Vercel
 
-- `NODE_ENV=production`
-- `KLARNA_CLIENT_ID` (when implementing real Klarna integration)
-- `KLARNA_CLIENT_SECRET` (when implementing real Klarna integration)
+To add your Klarna API credentials to your Vercel deployment:
+
+1. **Go to your Vercel Dashboard**
+   - Visit [vercel.com](https://vercel.com) and sign in
+   - Select your project (siwk-demo-site-age-verification)
+
+2. **Navigate to Settings**
+   - Click on your project
+   - Go to the **Settings** tab
+   - Click on **Environment Variables** in the left sidebar
+
+3. **Add Environment Variables**
+   Add the following variables:
+
+   | Variable Name | Value | Environment |
+   |--------------|-------|-------------|
+   | `KLARNA_CLIENT_ID` | Your Klarna Client ID | Production, Preview, Development |
+   | `KLARNA_CLIENT_SECRET` | Your Klarna Client Secret | Production, Preview, Development |
+   | `KLARNA_ENVIRONMENT` | `sandbox` or `production` | Production, Preview, Development |
+
+4. **For Each Variable:**
+   - Click **Add New**
+   - Enter the variable name
+   - Enter the value
+   - Select which environments to apply it to (Production, Preview, Development)
+   - Click **Save**
+
+5. **Redeploy**
+   - After adding the variables, go to the **Deployments** tab
+   - Click the three dots (⋯) on your latest deployment
+   - Click **Redeploy** to apply the new environment variables
+
+### Local Development Setup
+
+For local development, create a `.env` file in the root directory:
+
+```bash
+# Copy the example file
+cp .env.example .env
+
+# Edit .env and add your credentials
+KLARNA_CLIENT_ID=your_klarna_client_id_here
+KLARNA_CLIENT_SECRET=your_klarna_client_secret_here
+KLARNA_ENVIRONMENT=sandbox
+```
+
+**Note:** The `.env` file is already in `.gitignore` and will not be committed to git.
+
+### Getting Klarna Credentials
+
+1. Sign up for a Klarna Partner account at [Klarna Partner Portal](https://www.klarna.com/partners/)
+2. Navigate to the Developer/API section
+3. Create a new application
+4. Copy your Client ID and Client Secret
+5. Use the sandbox environment for testing
 
 ## Age Verification Flow
 
