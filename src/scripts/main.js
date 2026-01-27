@@ -36,98 +36,239 @@ function setVerificationStatus(verified) {
     }
 }
 
-// Global functions for Klarna SDK callback
-let globalShowResult, globalShowMainContent, globalSetVerificationStatus, globalCalculateAge;
-
-// Initialize Klarna SDK
-window.KlarnaSDKCallback = async function(klarna) {
-    // Get Klarna client ID from backend
+// Initialize Klarna Identity API flow
+async function initiateKlarnaIdentityFlow() {
+    const klarnaVerifyBtn = document.getElementById('klarna-verify-btn');
+    const verificationResult = document.getElementById('verification-result');
+    
+    // Show loading state
+    klarnaVerifyBtn.disabled = true;
+    klarnaVerifyBtn.innerHTML = `
+        <span class="klarna-button-content">
+            <svg class="spinner" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="32" stroke-dashoffset="32">
+                    <animate attributeName="stroke-dasharray" dur="2s" values="0 32;16 16;0 32;0 32" repeatCount="indefinite"/>
+                    <animate attributeName="stroke-dashoffset" dur="2s" values="0;-16;-32;-32" repeatCount="indefinite"/>
+                </circle>
+            </svg>
+            <span class="klarna-button-text">Creating request...</span>
+        </span>
+    `;
+    
     try {
-        const configResponse = await fetch('/api/klarna/config');
-        const config = await configResponse.json();
-        
-        if (!config.clientId) {
-            console.error('Klarna Client ID not configured');
-            return;
-        }
-        
-        // Initialize Klarna SDK
-        await klarna.init({
-            clientId: config.clientId
+        // Create identity request
+        const response = await fetch('/api/klarna/identity/request', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
         });
         
-        // Wait for DOM to be ready
-        if (document.readyState === 'loading') {
-            await new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve));
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to create identity request');
         }
         
-        // Create and mount the Klarna Identity button
-        const buttonContainer = document.getElementById('klarna-button-container');
-        if (buttonContainer) {
-            const siwkButton = klarna.Identity.button({
-                id: 'klarna-identity-button',
-                scope: 'openid offline_access payment:request:create profile:name profile:date_of_birth',
-                redirectUri: `${window.location.origin}/api/klarna/callback`,
-                theme: 'default',
-                shape: 'default'
-            });
-            
-            siwkButton.mount('#klarna-button-container');
+        // Redirect to Klarna identity flow
+        if (data.identity_request_url) {
+            window.location.href = data.identity_request_url;
+        } else {
+            throw new Error('Identity request URL not received');
         }
-        
-        // Listen for signin event
-        klarna.Identity.on('signin', async (signinResponse) => {
-            console.log('Klarna signin response:', signinResponse);
-            
-            // Check if user is 18+ based on date_of_birth claim
-            if (signinResponse.id_token) {
-                try {
-                    // Decode the id_token (it's a JWT)
-                    const payload = JSON.parse(atob(signinResponse.id_token.split('.')[1]));
-                    
-                    if (payload.date_of_birth && globalCalculateAge) {
-                        const birthDate = new Date(payload.date_of_birth);
-                        const age = globalCalculateAge(birthDate);
-                        
-                        if (age >= 18) {
-                            if (globalSetVerificationStatus) globalSetVerificationStatus(true);
-                            if (globalShowResult) globalShowResult(`Age verified successfully! You are ${age} years old.`, 'success');
-                            setTimeout(() => {
-                                if (globalShowMainContent) globalShowMainContent();
-                            }, 1500);
-                        } else {
-                            if (globalShowResult) globalShowResult(`Sorry, you must be 18 years or older. You are currently ${age} years old.`, 'error');
-                        }
-                    } else {
-                        // If no date_of_birth in token, assume verified (Klarna handles age verification)
-                        if (globalSetVerificationStatus) globalSetVerificationStatus(true);
-                        if (globalShowResult) globalShowResult('Age verified successfully with Klarna!', 'success');
-                        setTimeout(() => {
-                            if (globalShowMainContent) globalShowMainContent();
-                        }, 1500);
-                    }
-                } catch (error) {
-                    console.error('Error processing id_token:', error);
-                    // Fallback: assume verified if we can't parse
-                    if (globalSetVerificationStatus) globalSetVerificationStatus(true);
-                    if (globalShowResult) globalShowResult('Age verified successfully with Klarna!', 'success');
-                    setTimeout(() => {
-                        if (globalShowMainContent) globalShowMainContent();
-                    }, 1500);
-                }
-            }
-        });
-        
-        // Listen for errors
-        klarna.Identity.on('error', async (error) => {
-            console.error('Klarna error:', error);
-            if (globalShowResult) globalShowResult('Verification failed. Please try again or use manual verification.', 'error');
-        });
-        
     } catch (error) {
-        console.error('Failed to initialize Klarna SDK:', error);
+        console.error('Klarna identity flow error:', error);
+        showResult(error.message || 'An error occurred. Please try again.', 'error');
+        
+        // Reset button
+        klarnaVerifyBtn.disabled = false;
+        klarnaVerifyBtn.innerHTML = `
+            <span class="klarna-button-content">
+                <span class="klarna-logo">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="currentColor"/>
+                        <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </span>
+                <span class="klarna-button-text">Continue with Klarna</span>
+            </span>
+        `;
     }
-};
+}
+
+// Fetch and display identity request data
+async function fetchAndDisplayIdentityData(identityRequestId) {
+    try {
+        const response = await fetch(`/api/klarna/identity/request/${identityRequestId}`);
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to fetch identity data');
+        }
+        
+        // Check if request is completed
+        if (data.state === 'COMPLETED' || data.state === 'APPROVED') {
+            displayCustomerData(data);
+            setVerificationStatus(true);
+        } else {
+            showResult(`Identity request is in state: ${data.state}. Please wait...`, 'error');
+            // Poll again after a delay if not completed
+            setTimeout(() => fetchAndDisplayIdentityData(identityRequestId), 2000);
+        }
+    } catch (error) {
+        console.error('Error fetching identity data:', error);
+        showResult('Failed to fetch identity data. Please try again.', 'error');
+    }
+}
+
+// Helper function to calculate age
+function calculateAgeFromDOB(birthDate) {
+    if (!birthDate) return null;
+    const today = new Date();
+    const dob = new Date(birthDate);
+    let age = today.getFullYear() - dob.getFullYear();
+    const monthDiff = today.getMonth() - dob.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+        age--;
+    }
+    
+    return age;
+}
+
+// Display customer data on success screen
+function displayCustomerData(identityData) {
+    const successScreen = document.getElementById('success-screen');
+    const ageModal = document.getElementById('age-verification-modal');
+    const dataContent = document.getElementById('customer-data-content');
+    
+    if (!successScreen || !dataContent) return;
+    
+    // Hide age verification modal
+    if (ageModal) ageModal.style.display = 'none';
+    
+    // Extract customer data from state_context
+    const customerProfile = identityData.state_context?.klarna_customer?.customer_profile;
+    const customerToken = identityData.state_context?.klarna_customer?.customer_token;
+    
+    let html = '';
+    
+    // Customer Token
+    if (customerToken) {
+        html += `
+            <div class="data-item">
+                <div class="data-label">Customer Token</div>
+                <div class="data-value token-value">${customerToken.substring(0, 50)}...</div>
+            </div>
+        `;
+    }
+    
+    // Name
+    if (customerProfile?.name) {
+        const fullName = `${customerProfile.name.given_name || ''} ${customerProfile.name.family_name || ''}`.trim();
+        html += `
+            <div class="data-item">
+                <div class="data-label">Name</div>
+                <div class="data-value">${fullName || 'N/A'}</div>
+                ${customerProfile.name.name_verified ? '<span class="verified-badge">✓ Verified</span>' : ''}
+            </div>
+        `;
+    }
+    
+    // Email
+    if (customerProfile?.email) {
+        html += `
+            <div class="data-item">
+                <div class="data-label">Email</div>
+                <div class="data-value">${customerProfile.email.email || 'N/A'}</div>
+                ${customerProfile.email.email_verified ? '<span class="verified-badge">✓ Verified</span>' : ''}
+            </div>
+        `;
+    }
+    
+    // Phone
+    if (customerProfile?.phone) {
+        html += `
+            <div class="data-item">
+                <div class="data-label">Phone</div>
+                <div class="data-value">${customerProfile.phone.phone || 'N/A'}</div>
+                ${customerProfile.phone.phone_verified ? '<span class="verified-badge">✓ Verified</span>' : ''}
+            </div>
+        `;
+    }
+    
+    // Date of Birth
+    if (customerProfile?.date_of_birth) {
+        const dob = customerProfile.date_of_birth.date_of_birth;
+        const age = dob ? calculateAgeFromDOB(dob) : null;
+        html += `
+            <div class="data-item">
+                <div class="data-label">Date of Birth</div>
+                <div class="data-value">${dob || 'N/A'} ${age !== null ? `(Age: ${age})` : ''}</div>
+                ${customerProfile.date_of_birth.date_of_birth_verified ? '<span class="verified-badge">✓ Verified</span>' : ''}
+            </div>
+        `;
+    }
+    
+    // Locale
+    if (customerProfile?.locale) {
+        html += `
+            <div class="data-item">
+                <div class="data-label">Locale</div>
+                <div class="data-value">${customerProfile.locale.locale || 'N/A'}</div>
+            </div>
+        `;
+    }
+    
+    // Country
+    if (customerProfile?.country) {
+        html += `
+            <div class="data-item">
+                <div class="data-label">Country</div>
+                <div class="data-value">${customerProfile.country.country || 'N/A'}</div>
+            </div>
+        `;
+    }
+    
+    // Customer ID
+    if (customerProfile?.customer_id) {
+        html += `
+            <div class="data-item">
+                <div class="data-label">Customer ID</div>
+                <div class="data-value">${customerProfile.customer_id.customer_id || 'N/A'}</div>
+            </div>
+        `;
+    }
+    
+    // Billing Address
+    if (customerProfile?.billing_address) {
+        const addr = customerProfile.billing_address;
+        html += `
+            <div class="data-item">
+                <div class="data-label">Billing Address</div>
+                <div class="data-value">
+                    ${addr.street_address || ''} ${addr.street_address2 || ''}<br>
+                    ${addr.postal_code || ''} ${addr.city || ''}<br>
+                    ${addr.region || ''} ${addr.country || ''}
+                </div>
+            </div>
+        `;
+    }
+    
+    // Raw data (for debugging)
+    html += `
+        <div class="data-item full-width">
+            <div class="data-label">Raw Response Data</div>
+            <div class="data-value">
+                <pre class="raw-data">${JSON.stringify(identityData, null, 2)}</pre>
+            </div>
+        </div>
+    `;
+    
+    dataContent.innerHTML = html;
+    successScreen.classList.remove('hidden');
+}
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
@@ -142,20 +283,55 @@ document.addEventListener('DOMContentLoaded', () => {
     const maxDate = today.toISOString().split('T')[0];
     birthdateInput.setAttribute('max', maxDate);
     
-    // Check for reset parameter in URL (for testing: add ?reset=true to URL)
+    // Check for identity request ID in URL (from callback)
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('reset') === 'true') {
-        localStorage.removeItem(VERIFICATION_KEY);
-        localStorage.removeItem(VERIFICATION_TIMESTAMP_KEY);
+    const identityRequestId = urlParams.get('identity_request_id');
+    
+    if (identityRequestId) {
+        // Fetch and display identity data
+        fetchAndDisplayIdentityData(identityRequestId);
         // Clean up URL
         window.history.replaceState({}, document.title, window.location.pathname);
-    }
-    
-    // Check if already verified
-    if (checkVerificationStatus()) {
+    } else if (urlParams.get('reset') === 'true') {
+        // Reset verification
+        localStorage.removeItem(VERIFICATION_KEY);
+        localStorage.removeItem(VERIFICATION_TIMESTAMP_KEY);
+        window.history.replaceState({}, document.title, window.location.pathname);
+        showAgeVerification();
+    } else if (checkVerificationStatus()) {
+        // Already verified
         showMainContent();
     } else {
+        // Show age verification
         showAgeVerification();
+    }
+    
+    // Klarna Identity API button
+    const klarnaVerifyBtn = document.getElementById('klarna-verify-btn');
+    if (klarnaVerifyBtn) {
+        klarnaVerifyBtn.addEventListener('click', initiateKlarnaIdentityFlow);
+    }
+    
+    // Success screen buttons
+    const continueBtn = document.getElementById('continue-btn');
+    const resetBtn = document.getElementById('reset-btn');
+    
+    if (continueBtn) {
+        continueBtn.addEventListener('click', () => {
+            const successScreen = document.getElementById('success-screen');
+            if (successScreen) successScreen.classList.add('hidden');
+            showMainContent();
+        });
+    }
+    
+    if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+            localStorage.removeItem(VERIFICATION_KEY);
+            localStorage.removeItem(VERIFICATION_TIMESTAMP_KEY);
+            const successScreen = document.getElementById('success-screen');
+            if (successScreen) successScreen.classList.add('hidden');
+            showAgeVerification();
+        });
     }
     
     // Manual verification form
@@ -203,11 +379,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return age;
     }
     
-    // Make functions available globally for Klarna SDK callback
-    globalShowResult = showResult;
-    globalShowMainContent = showMainContent;
-    globalSetVerificationStatus = setVerificationStatus;
-    globalCalculateAge = calculateAge;
+    // Make calculateAge available globally for displayCustomerData
+    window.calculateAge = calculateAge;
     
     function showResult(message, type) {
         const resultEl = document.getElementById('verification-result');

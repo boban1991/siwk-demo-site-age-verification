@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const crypto = require('crypto');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -34,108 +35,140 @@ app.get('/api/klarna/config', (req, res) => {
   });
 });
 
-// API endpoint to initiate Klarna age verification
-app.post('/api/klarna/verify', async (req, res) => {
+// API endpoint to create Klarna Identity Request
+app.post('/api/klarna/identity/request', async (req, res) => {
   try {
-    // TODO: Implement actual Klarna API call here
-    // This is a placeholder for the Klarna age verification flow
-    
-    if (!KLARNA_CONFIG.clientId || !KLARNA_CONFIG.clientSecret) {
+    if (!KLARNA_CONFIG.clientId || !KLARNA_CONFIG.clientSecret || !KLARNA_CONFIG.accountId) {
       return res.status(500).json({ 
-        error: 'Klarna credentials not configured. Please set KLARNA_CLIENT_ID and KLARNA_CLIENT_SECRET environment variables.' 
+        error: 'Klarna credentials not configured. Please set KLARNA_CLIENT_ID, KLARNA_CLIENT_SECRET, and KLARNA_ACCOUNT_ID environment variables.' 
       });
     }
 
-    // Example Klarna API call structure:
-    /*
-    const response = await fetch(`${KLARNA_CONFIG.apiUrl}/age-verification/v1/sessions`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Basic ${Buffer.from(`${KLARNA_CONFIG.clientId}:${KLARNA_CONFIG.clientSecret}`).toString('base64')}`,
-        'Content-Type': 'application/json',
-        'Klarna-Account-Id': KLARNA_CONFIG.accountId, // If required by API
-      },
-      body: JSON.stringify({
-        redirect_uri: `${KLARNA_CONFIG.returnUrl}/api/klarna/callback`,
-        account_id: KLARNA_CONFIG.accountId,
-        // Add other required parameters
-      })
-    });
+    // Generate idempotency key (UUID v4)
+    const idempotencyKey = crypto.randomUUID();
     
-    const data = await response.json();
-    return res.json(data);
-    */
+    // Create identity request with all available scopes
+    const identityRequest = {
+      request_customer_token: {
+        scopes: [
+          'customer:login',
+          'profile:verified:name',
+          'profile:verified:date_of_birth',
+          'profile:email',
+          'profile:phone',
+          'profile:locale',
+          'profile:billing_address',
+          'profile:country',
+          'profile:customer_id'
+        ]
+      },
+      customer_interaction_config: {
+        method: 'HANDOVER',
+        return_url: `${KLARNA_CONFIG.returnUrl}/api/klarna/callback?identity_request_id={klarna.identity_request.id}&state={klarna.identity_request.state}`
+      }
+    };
 
-    // For now, return a mock response
-    // TODO: Replace with actual Klarna API call that returns a verification URL
-    // Don't return success: true here - only return success after actual verification
+    // Make API call to create identity request
+    const response = await fetch(
+      `${KLARNA_CONFIG.apiUrl}/v2/accounts/${KLARNA_CONFIG.accountId}/identity/requests`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${Buffer.from(`${KLARNA_CONFIG.clientId}:${KLARNA_CONFIG.clientSecret}`).toString('base64')}`,
+          'Content-Type': 'application/json',
+          'Klarna-Idempotency-Key': idempotencyKey,
+          'Partner-Correlation-Id': `partner-${Date.now()}`
+        },
+        body: JSON.stringify(identityRequest)
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Klarna API error:', response.status, errorText);
+      return res.status(response.status).json({ 
+        error: `Klarna API error: ${response.status}`,
+        details: errorText
+      });
+    }
+
+    const data = await response.json();
+    
+    // Extract the identity request URL from state_context
+    const identityRequestUrl = data.state_context?.customer_interaction?.identity_request_url;
+    
+    if (!identityRequestUrl) {
+      return res.status(500).json({ 
+        error: 'Identity request URL not found in response',
+        response: data
+      });
+    }
+
     res.json({
-      initiated: true,
-      message: 'Klarna verification initiated',
-      // In real implementation, return the verification URL or session ID
-      verificationUrl: null, // This would be the URL to redirect to for actual verification
-      sessionId: null, // This would be the session ID
-      // Note: Don't set verification status until user completes the flow
+      identity_request_id: data.identity_request_id,
+      identity_request_url: identityRequestUrl,
+      state: data.state
     });
   } catch (error) {
-    console.error('Klarna verification error:', error);
-    res.status(500).json({ error: 'Failed to initiate Klarna verification' });
+    console.error('Klarna identity request error:', error);
+    res.status(500).json({ error: 'Failed to create identity request', details: error.message });
   }
 });
 
-// API endpoint for Klarna callback (after user completes verification)
-// This serves the callback.html page that the Klarna SDK expects
+// API endpoint to read identity request state
+app.get('/api/klarna/identity/request/:identityRequestId', async (req, res) => {
+  try {
+    const { identityRequestId } = req.params;
+    
+    if (!KLARNA_CONFIG.clientId || !KLARNA_CONFIG.clientSecret || !KLARNA_CONFIG.accountId) {
+      return res.status(500).json({ 
+        error: 'Klarna credentials not configured' 
+      });
+    }
+
+    const response = await fetch(
+      `${KLARNA_CONFIG.apiUrl}/v2/accounts/${KLARNA_CONFIG.accountId}/identity/requests/${identityRequestId}`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Basic ${Buffer.from(`${KLARNA_CONFIG.clientId}:${KLARNA_CONFIG.clientSecret}`).toString('base64')}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Klarna API error:', response.status, errorText);
+      return res.status(response.status).json({ 
+        error: `Klarna API error: ${response.status}`,
+        details: errorText
+      });
+    }
+
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    console.error('Klarna identity request read error:', error);
+    res.status(500).json({ error: 'Failed to read identity request', details: error.message });
+  }
+});
+
+// API endpoint for Klarna callback (after user completes identity flow)
 app.get('/api/klarna/callback', async (req, res) => {
   try {
-    // Serve a callback page that the Klarna SDK can use
-    // The SDK will handle the OAuth flow and emit events
-    const callbackHtml = `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Klarna Verification Callback</title>
-    <script defer src="https://js.klarna.com/web-sdk/v1/klarna.js"></script>
-</head>
-<body>
-    <div style="display: flex; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif;">
-        <p>Completing verification...</p>
-    </div>
-    <script>
-        window.KlarnaSDKCallback = async function(klarna) {
-            try {
-                const configResponse = await fetch('/api/klarna/config');
-                const config = await configResponse.json();
-                
-                await klarna.init({
-                    clientId: config.clientId
-                });
-                
-                // Listen for signin event
-                klarna.Identity.on('signin', async (signinResponse) => {
-                    // Redirect back to main page with success
-                    window.location.href = '/?verified=true';
-                });
-                
-                // Listen for errors
-                klarna.Identity.on('error', async (error) => {
-                    console.error('Klarna error:', error);
-                    window.location.href = '/?verified=false';
-                });
-            } catch (error) {
-                console.error('Callback error:', error);
-                window.location.href = '/?verified=false';
-            }
-        };
-    </script>
-</body>
-</html>
-    `;
-    res.send(callbackHtml);
+    const { identity_request_id, state } = req.query;
+    
+    if (!identity_request_id) {
+      return res.status(400).json({ error: 'Missing identity_request_id' });
+    }
+
+    // Redirect to success page with identity request ID
+    // The frontend will fetch the identity request data
+    res.redirect(`/?identity_request_id=${identity_request_id}&state=${state || 'completed'}`);
   } catch (error) {
     console.error('Klarna callback error:', error);
-    res.redirect('/?verified=false');
+    res.redirect('/?error=callback_failed');
   }
 });
 

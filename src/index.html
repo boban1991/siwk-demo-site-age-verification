@@ -8,8 +8,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Klarna Web SDK -->
-    <script defer src="https://js.klarna.com/web-sdk/v1/klarna.js"></script>
 </head>
 <body>
     <!-- Age Verification Modal -->
@@ -39,7 +37,18 @@
                     <div class="verification-option">
                         <h3>Quick & Secure Verification</h3>
                         <p>Verify your age instantly with Klarna</p>
-                        <div id="klarna-button-container"></div>
+                        <button id="klarna-verify-btn" class="klarna-button">
+                            <span class="klarna-button-content">
+                                <span class="klarna-logo">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="currentColor"/>
+                                        <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </span>
+                                <span class="klarna-button-text">Continue with Klarna</span>
+                            </span>
+                        </button>
                     </div>
                     
                     <div class="divider">
@@ -60,6 +69,29 @@
                 </div>
 
                 <div id="verification-result" class="verification-result"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Screen (Shows customer data after verification) -->
+    <div id="success-screen" class="success-screen hidden">
+        <div class="success-content">
+            <div class="success-header">
+                <div class="success-icon">✅</div>
+                <h1>Verification Successful!</h1>
+                <p>Your identity has been verified with Klarna</p>
+            </div>
+            
+            <div class="customer-data">
+                <h2>Your Profile Data</h2>
+                <div id="customer-data-content" class="data-grid">
+                    <!-- Data will be populated here -->
+                </div>
+            </div>
+            
+            <div class="success-actions">
+                <button id="continue-btn" class="btn btn-primary btn-large">Continue to Site</button>
+                <button id="reset-btn" class="btn btn-secondary">Start Over</button>
             </div>
         </div>
     </div>
