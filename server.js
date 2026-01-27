@@ -11,9 +11,9 @@ app.use(express.static(path.join(__dirname, 'src')));
 
 // Klarna API Configuration (from environment variables)
 const KLARNA_CONFIG = {
-  clientId: process.env.KLARNA_CLIENT_ID,
-  clientSecret: process.env.KLARNA_CLIENT_SECRET,
-  apiKey: process.env.KLARNA_API_KEY || process.env.KLARNA_CLIENT_SECRET, // API key (may be same as client secret)
+  clientId: process.env.KLARNA_USER_NAME || process.env.KLARNA_CLIENT_ID, // Username/Client ID
+  clientSecret: process.env.KLARNA_PASSWORD || process.env.KLARNA_CLIENT_SECRET, // API key/Password
+  apiKey: process.env.KLARNA_PASSWORD || process.env.KLARNA_API_KEY || process.env.KLARNA_CLIENT_SECRET, // API key (password)
   environment: process.env.KLARNA_ENVIRONMENT || 'sandbox', // 'sandbox' or 'production'
   apiUrl: process.env.KLARNA_BASE_URL || 'https://api-global.test.klarna.com',
   accountId: process.env.KLARNA_ACCOUNT_ID,
@@ -30,9 +30,9 @@ app.get('/', (req, res) => {
 // API endpoint to get Klarna configuration (public config only)
 app.get('/api/klarna/config', (req, res) => {
   res.json({
-    clientId: KLARNA_CONFIG.clientId,
+    clientId: KLARNA_CONFIG.clientId, // Username
     environment: KLARNA_CONFIG.environment,
-    // Don't expose client secret
+    // Don't expose API key/password
   });
 });
 
@@ -41,20 +41,20 @@ app.post('/api/klarna/identity/request', async (req, res) => {
   try {
     console.log('Creating identity request...');
     console.log('Config check:', {
-      hasClientId: !!KLARNA_CONFIG.clientId,
-      hasClientSecret: !!KLARNA_CONFIG.clientSecret,
+      hasUserName: !!KLARNA_CONFIG.clientId,
+      hasPassword: !!KLARNA_CONFIG.clientSecret,
       hasApiKey: !!KLARNA_CONFIG.apiKey,
-      clientIdPrefix: KLARNA_CONFIG.clientId ? KLARNA_CONFIG.clientId.substring(0, 10) + '...' : 'missing',
-      apiKeyPrefix: (KLARNA_CONFIG.apiKey || KLARNA_CONFIG.clientSecret) ? (KLARNA_CONFIG.apiKey || KLARNA_CONFIG.clientSecret).substring(0, 10) + '...' : 'missing',
+      userNamePrefix: KLARNA_CONFIG.clientId ? KLARNA_CONFIG.clientId.substring(0, 10) + '...' : 'missing',
+      passwordPrefix: KLARNA_CONFIG.clientSecret ? KLARNA_CONFIG.clientSecret.substring(0, 10) + '...' : 'missing',
       hasAccountId: !!KLARNA_CONFIG.accountId,
       apiUrl: KLARNA_CONFIG.apiUrl,
       accountId: KLARNA_CONFIG.accountId
     });
     
-    if (!KLARNA_CONFIG.clientId || !KLARNA_CONFIG.clientSecret || !KLARNA_CONFIG.accountId) {
+    if (!KLARNA_CONFIG.apiKey || !KLARNA_CONFIG.accountId) {
       console.error('Missing credentials');
       return res.status(500).json({ 
-        error: 'Klarna credentials not configured. Please set KLARNA_CLIENT_ID, KLARNA_CLIENT_SECRET, and KLARNA_ACCOUNT_ID environment variables.' 
+        error: 'Klarna credentials not configured. Please set KLARNA_PASSWORD (API key) and KLARNA_ACCOUNT_ID environment variables.' 
       });
     }
 
@@ -104,18 +104,20 @@ app.post('/api/klarna/identity/request', async (req, res) => {
     console.log('Request body:', JSON.stringify(identityRequest, null, 2));
 
     // Klarna Identity API authentication
-    // Based on Klarna docs, Identity API uses API key authentication
-    const apiKey = KLARNA_CONFIG.apiKey || KLARNA_CONFIG.clientSecret;
+    // Identity API uses API key authentication (not OAuth)
+    // The API key is KLARNA_PASSWORD (the test API key from Klarna)
+    const apiKey = KLARNA_CONFIG.apiKey;
     
     if (!apiKey) {
-      throw new Error('API key (KLARNA_API_KEY or KLARNA_CLIENT_SECRET) is required');
+      throw new Error('API key (KLARNA_PASSWORD) is required');
     }
     
-    // Try API key only first (most common for Klarna APIs)
+    // Basic Auth with API key only
     // Format: Basic <base64(apiKey:)>
-    let authHeader = `Basic ${Buffer.from(`${apiKey}:`).toString('base64')}`;
-    console.log('Using Basic Auth with API key only (apiKey:)');
-    console.log('API key prefix:', apiKey.substring(0, 20) + '...');
+    const authHeader = `Basic ${Buffer.from(`${apiKey}:`).toString('base64')}`;
+    console.log('Using API key authentication (Basic Auth with apiKey:)');
+    console.log('API key length:', apiKey.length);
+    console.log('API key starts with:', apiKey.substring(0, 15) + '...');
 
     // Make API call to create identity request
     const response = await fetch(apiUrl, {
@@ -150,73 +152,15 @@ app.post('/api/klarna/identity/request', async (req, res) => {
         // Not JSON, use as-is
       }
       
-      // If 401, try alternative authentication methods
+      // If 401, the API key is likely incorrect
+      // Log detailed info to help debug
       if (response.status === 401) {
-        console.log('401 error - trying alternative authentication methods...');
-        
-        // Try 1: clientId:apiKey format
-        if (KLARNA_CONFIG.clientId && apiKey) {
-          console.log('Trying clientId:apiKey format...');
-          const altAuthHeader = `Basic ${Buffer.from(`${KLARNA_CONFIG.clientId}:${apiKey}`).toString('base64')}`;
-          
-          const altResponse = await fetch(apiUrl, {
-            method: 'POST',
-            headers: {
-              'Authorization': altAuthHeader,
-              'Content-Type': 'application/json',
-              'Klarna-Idempotency-Key': crypto.randomUUID(),
-              'Partner-Correlation-Id': `partner-${Date.now()}`
-            },
-            body: JSON.stringify(identityRequest)
-          });
-          
-          if (altResponse.ok) {
-            const altData = await altResponse.json();
-            const identityRequestUrl = altData.state_context?.customer_interaction?.identity_request_url;
-            if (identityRequestUrl) {
-              console.log('Success with clientId:apiKey format!');
-              return res.json({
-                identity_request_id: altData.identity_request_id,
-                identity_request_url: identityRequestUrl,
-                state: altData.state
-              });
-            }
-          } else {
-            const altErrorText = await altResponse.text();
-            console.error('clientId:apiKey also failed:', altResponse.status, altErrorText);
-          }
-        }
-        
-        // Try 2: Full KRN format in URL (if we used extracted)
-        if (KLARNA_CONFIG.accountId && KLARNA_CONFIG.accountId.startsWith('krn:') && accountId !== KLARNA_CONFIG.accountId) {
-          console.log('Trying with full KRN (URL encoded)...');
-          const encodedKRN = encodeURIComponent(KLARNA_CONFIG.accountId);
-          const altApiUrl = `${KLARNA_CONFIG.apiUrl}/v2/accounts/${encodedKRN}/identity/requests`;
-          
-          const altResponse = await fetch(altApiUrl, {
-            method: 'POST',
-            headers: {
-              'Authorization': authHeader,
-              'Content-Type': 'application/json',
-              'Klarna-Idempotency-Key': crypto.randomUUID(),
-              'Partner-Correlation-Id': `partner-${Date.now()}`
-            },
-            body: JSON.stringify(identityRequest)
-          });
-          
-          if (altResponse.ok) {
-            const altData = await altResponse.json();
-            const identityRequestUrl = altData.state_context?.customer_interaction?.identity_request_url;
-            if (identityRequestUrl) {
-              console.log('Success with full KRN format!');
-              return res.json({
-                identity_request_id: altData.identity_request_id,
-                identity_request_url: identityRequestUrl,
-                state: altData.state
-              });
-            }
-          }
-        }
+        console.error('401 Unauthorized - API key authentication failed');
+        console.error('This usually means:');
+        console.error('1. The API key (KLARNA_CLIENT_SECRET) is incorrect');
+        console.error('2. The API key doesn\'t match the test environment');
+        console.error('3. The API key format is wrong');
+        console.error('4. The account ID doesn\'t match the API key');
       }
       
       return res.status(response.status).json({ 
@@ -225,7 +169,7 @@ app.post('/api/klarna/identity/request', async (req, res) => {
         accountIdUsed: accountId,
         apiUrl: apiUrl,
         authMethod: KLARNA_CONFIG.clientId ? 'clientId:apiKey' : 'apiKey only',
-        hint: response.status === 401 ? 'Authentication failed. Verify: 1) KLARNA_CLIENT_ID and KLARNA_CLIENT_SECRET are correct, 2) They match the test environment, 3) Account ID format is correct' : undefined
+        hint: response.status === 401 ? 'API key authentication failed. Verify: 1) KLARNA_PASSWORD (your test API key) is correct in Vercel, 2) It matches the test/sandbox environment, 3) The API key has access to the Identity API, 4) Account ID matches the API key' : undefined
       });
     }
 
@@ -265,9 +209,9 @@ app.get('/api/klarna/identity/request/:identityRequestId', async (req, res) => {
   try {
     const { identityRequestId } = req.params;
     
-    if (!KLARNA_CONFIG.clientId || !KLARNA_CONFIG.clientSecret || !KLARNA_CONFIG.accountId) {
+    if (!KLARNA_CONFIG.apiKey || !KLARNA_CONFIG.accountId) {
       return res.status(500).json({ 
-        error: 'Klarna credentials not configured' 
+        error: 'Klarna credentials not configured. Please set KLARNA_PASSWORD and KLARNA_ACCOUNT_ID'
       });
     }
 
@@ -279,9 +223,9 @@ app.get('/api/klarna/identity/request/:identityRequestId', async (req, res) => {
     }
 
     // Use same auth method as create request (API key only)
-    const apiKey = KLARNA_CONFIG.apiKey || KLARNA_CONFIG.clientSecret;
+    const apiKey = KLARNA_CONFIG.apiKey;
     if (!apiKey) {
-      return res.status(500).json({ error: 'API key (KLARNA_API_KEY or KLARNA_CLIENT_SECRET) is required' });
+      return res.status(500).json({ error: 'API key (KLARNA_PASSWORD) is required' });
     }
     const authHeader = `Basic ${Buffer.from(`${apiKey}:`).toString('base64')}`;
     console.log('Reading identity request with API key auth');
