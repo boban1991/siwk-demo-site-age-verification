@@ -131,9 +131,50 @@ app.post('/api/klarna/identity/request', async (req, res) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Klarna API error:', response.status, errorText);
+      console.error('Request URL:', apiUrl);
+      console.error('Account ID used:', accountId);
+      console.error('Auth method: Basic Auth with API key');
+      
+      // If 401 and we used extracted account ID, try with full KRN (URL encoded)
+      if (response.status === 401 && KLARNA_CONFIG.accountId && KLARNA_CONFIG.accountId.startsWith('krn:') && accountId !== KLARNA_CONFIG.accountId) {
+        console.log('401 error - trying with full KRN (URL encoded) as fallback...');
+        const encodedKRN = encodeURIComponent(KLARNA_CONFIG.accountId);
+        const altApiUrl = `${KLARNA_CONFIG.apiUrl}/v2/accounts/${encodedKRN}/identity/requests`;
+        
+        const altResponse = await fetch(altApiUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': authHeader,
+            'Content-Type': 'application/json',
+            'Klarna-Idempotency-Key': crypto.randomUUID(),
+            'Partner-Correlation-Id': `partner-${Date.now()}`
+          },
+          body: JSON.stringify(identityRequest)
+        });
+        
+        if (altResponse.ok) {
+          const altData = await altResponse.json();
+          const identityRequestUrl = altData.state_context?.customer_interaction?.identity_request_url;
+          if (identityRequestUrl) {
+            console.log('Success with full KRN format!');
+            return res.json({
+              identity_request_id: altData.identity_request_id,
+              identity_request_url: identityRequestUrl,
+              state: altData.state
+            });
+          }
+        } else {
+          const altErrorText = await altResponse.text();
+          console.error('Fallback also failed:', altResponse.status, altErrorText);
+        }
+      }
+      
       return res.status(response.status).json({ 
         error: `Klarna API error: ${response.status}`,
-        details: errorText
+        details: errorText,
+        accountIdUsed: accountId,
+        apiUrl: apiUrl,
+        hint: response.status === 401 ? 'Check that KLARNA_CLIENT_SECRET (API key) is correct and matches your test environment' : undefined
       });
     }
 
