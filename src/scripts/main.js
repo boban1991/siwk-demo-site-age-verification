@@ -56,29 +56,66 @@ async function initiateKlarnaIdentityFlow() {
     `;
     
     try {
-        // Create identity request
+        console.log('Creating identity request...');
+        
+        // Create identity request with timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+        
         const response = await fetch('/api/klarna/identity/request', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
+            signal: controller.signal
         });
         
-        const data = await response.json();
+        clearTimeout(timeoutId);
+        
+        console.log('Response status:', response.status);
+        
+        let data;
+        try {
+            data = await response.json();
+        } catch (parseError) {
+            const text = await response.text();
+            console.error('Failed to parse response:', text);
+            throw new Error(`Server error: ${response.status} - ${text.substring(0, 100)}`);
+        }
+        
+        console.log('Response data:', data);
         
         if (!response.ok) {
-            throw new Error(data.error || 'Failed to create identity request');
+            throw new Error(data.error || data.details || `Failed to create identity request: ${response.status}`);
         }
         
         // Redirect to Klarna identity flow
         if (data.identity_request_url) {
+            console.log('Redirecting to:', data.identity_request_url);
             window.location.href = data.identity_request_url;
         } else {
-            throw new Error('Identity request URL not received');
+            console.error('No identity_request_url in response:', data);
+            throw new Error('Identity request URL not received. Response: ' + JSON.stringify(data));
         }
     } catch (error) {
         console.error('Klarna identity flow error:', error);
-        showResult(error.message || 'An error occurred. Please try again.', 'error');
+        
+        let errorMessage = 'An error occurred. Please try again.';
+        if (error.name === 'AbortError') {
+            errorMessage = 'Request timed out. Please check your connection and try again.';
+        } else if (error.message) {
+            errorMessage = error.message;
+        }
+        
+        // Show error message
+        const resultEl = document.getElementById('verification-result');
+        if (resultEl) {
+            resultEl.textContent = errorMessage;
+            resultEl.className = 'verification-result error';
+            resultEl.style.display = 'block';
+        } else {
+            alert(errorMessage);
+        }
         
         // Reset button
         klarnaVerifyBtn.disabled = false;

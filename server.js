@@ -38,7 +38,17 @@ app.get('/api/klarna/config', (req, res) => {
 // API endpoint to create Klarna Identity Request
 app.post('/api/klarna/identity/request', async (req, res) => {
   try {
+    console.log('Creating identity request...');
+    console.log('Config check:', {
+      hasClientId: !!KLARNA_CONFIG.clientId,
+      hasClientSecret: !!KLARNA_CONFIG.clientSecret,
+      hasAccountId: !!KLARNA_CONFIG.accountId,
+      apiUrl: KLARNA_CONFIG.apiUrl,
+      accountId: KLARNA_CONFIG.accountId
+    });
+    
     if (!KLARNA_CONFIG.clientId || !KLARNA_CONFIG.clientSecret || !KLARNA_CONFIG.accountId) {
+      console.error('Missing credentials');
       return res.status(500).json({ 
         error: 'Klarna credentials not configured. Please set KLARNA_CLIENT_ID, KLARNA_CLIENT_SECRET, and KLARNA_ACCOUNT_ID environment variables.' 
       });
@@ -46,6 +56,17 @@ app.post('/api/klarna/identity/request', async (req, res) => {
 
     // Generate idempotency key (UUID v4)
     const idempotencyKey = crypto.randomUUID();
+    
+    // Extract account ID from KRN format if needed
+    // KRN format: krn:partner:global:account:test:MI5RSLGHURL
+    // We need just the account identifier part
+    let accountId = KLARNA_CONFIG.accountId;
+    if (accountId.startsWith('krn:')) {
+      // Extract the last part after the last colon
+      const parts = accountId.split(':');
+      accountId = parts[parts.length - 1];
+      console.log('Extracted account ID from KRN:', accountId);
+    }
     
     // Create identity request with all available scopes
     const identityRequest = {
@@ -68,20 +89,23 @@ app.post('/api/klarna/identity/request', async (req, res) => {
       }
     };
 
+    const apiUrl = `${KLARNA_CONFIG.apiUrl}/v2/accounts/${accountId}/identity/requests`;
+    console.log('Making request to:', apiUrl);
+    console.log('Request body:', JSON.stringify(identityRequest, null, 2));
+
     // Make API call to create identity request
-    const response = await fetch(
-      `${KLARNA_CONFIG.apiUrl}/v2/accounts/${KLARNA_CONFIG.accountId}/identity/requests`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Basic ${Buffer.from(`${KLARNA_CONFIG.clientId}:${KLARNA_CONFIG.clientSecret}`).toString('base64')}`,
-          'Content-Type': 'application/json',
-          'Klarna-Idempotency-Key': idempotencyKey,
-          'Partner-Correlation-Id': `partner-${Date.now()}`
-        },
-        body: JSON.stringify(identityRequest)
-      }
-    );
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${Buffer.from(`${KLARNA_CONFIG.clientId}:${KLARNA_CONFIG.clientSecret}`).toString('base64')}`,
+        'Content-Type': 'application/json',
+        'Klarna-Idempotency-Key': idempotencyKey,
+        'Partner-Correlation-Id': `partner-${Date.now()}`
+      },
+      body: JSON.stringify(identityRequest)
+    });
+    
+    console.log('Response status:', response.status);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -93,17 +117,20 @@ app.post('/api/klarna/identity/request', async (req, res) => {
     }
 
     const data = await response.json();
+    console.log('Klarna API response:', JSON.stringify(data, null, 2));
     
     // Extract the identity request URL from state_context
     const identityRequestUrl = data.state_context?.customer_interaction?.identity_request_url;
     
     if (!identityRequestUrl) {
+      console.error('Identity request URL not found. Full response:', data);
       return res.status(500).json({ 
         error: 'Identity request URL not found in response',
         response: data
       });
     }
 
+    console.log('Identity request created successfully. URL:', identityRequestUrl);
     res.json({
       identity_request_id: data.identity_request_id,
       identity_request_url: identityRequestUrl,
@@ -111,7 +138,12 @@ app.post('/api/klarna/identity/request', async (req, res) => {
     });
   } catch (error) {
     console.error('Klarna identity request error:', error);
-    res.status(500).json({ error: 'Failed to create identity request', details: error.message });
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ 
+      error: 'Failed to create identity request', 
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 
@@ -126,8 +158,15 @@ app.get('/api/klarna/identity/request/:identityRequestId', async (req, res) => {
       });
     }
 
+    // Extract account ID from KRN format if needed
+    let accountId = KLARNA_CONFIG.accountId;
+    if (accountId.startsWith('krn:')) {
+      const parts = accountId.split(':');
+      accountId = parts[parts.length - 1];
+    }
+
     const response = await fetch(
-      `${KLARNA_CONFIG.apiUrl}/v2/accounts/${KLARNA_CONFIG.accountId}/identity/requests/${identityRequestId}`,
+      `${KLARNA_CONFIG.apiUrl}/v2/accounts/${accountId}/identity/requests/${identityRequestId}`,
       {
         method: 'GET',
         headers: {
