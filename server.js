@@ -104,25 +104,18 @@ app.post('/api/klarna/identity/request', async (req, res) => {
     console.log('Request body:', JSON.stringify(identityRequest, null, 2));
 
     // Klarna Identity API authentication
-    // Try multiple authentication methods based on available credentials
+    // Based on Klarna docs, Identity API uses API key authentication
     const apiKey = KLARNA_CONFIG.apiKey || KLARNA_CONFIG.clientSecret;
     
     if (!apiKey) {
       throw new Error('API key (KLARNA_API_KEY or KLARNA_CLIENT_SECRET) is required');
     }
     
-    // Method 1: Basic Auth with clientId:apiKey (most common for OAuth-style APIs)
-    let authHeader;
-    if (KLARNA_CONFIG.clientId && apiKey) {
-      authHeader = `Basic ${Buffer.from(`${KLARNA_CONFIG.clientId}:${apiKey}`).toString('base64')}`;
-      console.log('Using Basic Auth with clientId:apiKey');
-    } else {
-      // Method 2: Basic Auth with just API key (empty username)
-      authHeader = `Basic ${Buffer.from(`${apiKey}:`).toString('base64')}`;
-      console.log('Using Basic Auth with API key only');
-    }
-    
-    console.log('Auth header format:', authHeader.substring(0, 30) + '...');
+    // Try API key only first (most common for Klarna APIs)
+    // Format: Basic <base64(apiKey:)>
+    let authHeader = `Basic ${Buffer.from(`${apiKey}:`).toString('base64')}`;
+    console.log('Using Basic Auth with API key only (apiKey:)');
+    console.log('API key prefix:', apiKey.substring(0, 20) + '...');
 
     // Make API call to create identity request
     const response = await fetch(apiUrl, {
@@ -157,37 +150,72 @@ app.post('/api/klarna/identity/request', async (req, res) => {
         // Not JSON, use as-is
       }
       
-      // If 401 and we used extracted account ID, try with full KRN (URL encoded)
-      if (response.status === 401 && KLARNA_CONFIG.accountId && KLARNA_CONFIG.accountId.startsWith('krn:') && accountId !== KLARNA_CONFIG.accountId) {
-        console.log('401 error - trying with full KRN (URL encoded) as fallback...');
-        const encodedKRN = encodeURIComponent(KLARNA_CONFIG.accountId);
-        const altApiUrl = `${KLARNA_CONFIG.apiUrl}/v2/accounts/${encodedKRN}/identity/requests`;
+      // If 401, try alternative authentication methods
+      if (response.status === 401) {
+        console.log('401 error - trying alternative authentication methods...');
         
-        const altResponse = await fetch(altApiUrl, {
-          method: 'POST',
-          headers: {
-            'Authorization': authHeader,
-            'Content-Type': 'application/json',
-            'Klarna-Idempotency-Key': crypto.randomUUID(),
-            'Partner-Correlation-Id': `partner-${Date.now()}`
-          },
-          body: JSON.stringify(identityRequest)
-        });
-        
-        if (altResponse.ok) {
-          const altData = await altResponse.json();
-          const identityRequestUrl = altData.state_context?.customer_interaction?.identity_request_url;
-          if (identityRequestUrl) {
-            console.log('Success with full KRN format!');
-            return res.json({
-              identity_request_id: altData.identity_request_id,
-              identity_request_url: identityRequestUrl,
-              state: altData.state
-            });
+        // Try 1: clientId:apiKey format
+        if (KLARNA_CONFIG.clientId && apiKey) {
+          console.log('Trying clientId:apiKey format...');
+          const altAuthHeader = `Basic ${Buffer.from(`${KLARNA_CONFIG.clientId}:${apiKey}`).toString('base64')}`;
+          
+          const altResponse = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+              'Authorization': altAuthHeader,
+              'Content-Type': 'application/json',
+              'Klarna-Idempotency-Key': crypto.randomUUID(),
+              'Partner-Correlation-Id': `partner-${Date.now()}`
+            },
+            body: JSON.stringify(identityRequest)
+          });
+          
+          if (altResponse.ok) {
+            const altData = await altResponse.json();
+            const identityRequestUrl = altData.state_context?.customer_interaction?.identity_request_url;
+            if (identityRequestUrl) {
+              console.log('Success with clientId:apiKey format!');
+              return res.json({
+                identity_request_id: altData.identity_request_id,
+                identity_request_url: identityRequestUrl,
+                state: altData.state
+              });
+            }
+          } else {
+            const altErrorText = await altResponse.text();
+            console.error('clientId:apiKey also failed:', altResponse.status, altErrorText);
           }
-        } else {
-          const altErrorText = await altResponse.text();
-          console.error('Fallback also failed:', altResponse.status, altErrorText);
+        }
+        
+        // Try 2: Full KRN format in URL (if we used extracted)
+        if (KLARNA_CONFIG.accountId && KLARNA_CONFIG.accountId.startsWith('krn:') && accountId !== KLARNA_CONFIG.accountId) {
+          console.log('Trying with full KRN (URL encoded)...');
+          const encodedKRN = encodeURIComponent(KLARNA_CONFIG.accountId);
+          const altApiUrl = `${KLARNA_CONFIG.apiUrl}/v2/accounts/${encodedKRN}/identity/requests`;
+          
+          const altResponse = await fetch(altApiUrl, {
+            method: 'POST',
+            headers: {
+              'Authorization': authHeader,
+              'Content-Type': 'application/json',
+              'Klarna-Idempotency-Key': crypto.randomUUID(),
+              'Partner-Correlation-Id': `partner-${Date.now()}`
+            },
+            body: JSON.stringify(identityRequest)
+          });
+          
+          if (altResponse.ok) {
+            const altData = await altResponse.json();
+            const identityRequestUrl = altData.state_context?.customer_interaction?.identity_request_url;
+            if (identityRequestUrl) {
+              console.log('Success with full KRN format!');
+              return res.json({
+                identity_request_id: altData.identity_request_id,
+                identity_request_url: identityRequestUrl,
+                state: altData.state
+              });
+            }
+          }
         }
       }
       
@@ -250,12 +278,13 @@ app.get('/api/klarna/identity/request/:identityRequestId', async (req, res) => {
       accountId = parts[parts.length - 1];
     }
 
-    // Use same auth method as create request
+    // Use same auth method as create request (API key only)
     const apiKey = KLARNA_CONFIG.apiKey || KLARNA_CONFIG.clientSecret;
     if (!apiKey) {
       return res.status(500).json({ error: 'API key (KLARNA_API_KEY or KLARNA_CLIENT_SECRET) is required' });
     }
     const authHeader = `Basic ${Buffer.from(`${apiKey}:`).toString('base64')}`;
+    console.log('Reading identity request with API key auth');
 
     const response = await fetch(
       `${KLARNA_CONFIG.apiUrl}/v2/accounts/${accountId}/identity/requests/${identityRequestId}`,
