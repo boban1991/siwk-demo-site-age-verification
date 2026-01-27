@@ -13,6 +13,7 @@ app.use(express.static(path.join(__dirname, 'src')));
 const KLARNA_CONFIG = {
   clientId: process.env.KLARNA_CLIENT_ID,
   clientSecret: process.env.KLARNA_CLIENT_SECRET,
+  apiKey: process.env.KLARNA_API_KEY || process.env.KLARNA_CLIENT_SECRET, // API key (may be same as client secret)
   environment: process.env.KLARNA_ENVIRONMENT || 'sandbox', // 'sandbox' or 'production'
   apiUrl: process.env.KLARNA_BASE_URL || 'https://api-global.test.klarna.com',
   accountId: process.env.KLARNA_ACCOUNT_ID,
@@ -57,16 +58,22 @@ app.post('/api/klarna/identity/request', async (req, res) => {
     // Generate idempotency key (UUID v4)
     const idempotencyKey = crypto.randomUUID();
     
-    // Extract account ID from KRN format if needed
+    // Use account ID - try both full KRN and extracted format
     // KRN format: krn:partner:global:account:test:MI5RSLGHURL
-    // We need just the account identifier part
     let accountId = KLARNA_CONFIG.accountId;
-    if (accountId.startsWith('krn:')) {
+    let accountIdExtracted = accountId;
+    
+    if (accountId && accountId.startsWith('krn:')) {
       // Extract the last part after the last colon
       const parts = accountId.split(':');
-      accountId = parts[parts.length - 1];
-      console.log('Extracted account ID from KRN:', accountId);
+      accountIdExtracted = parts[parts.length - 1];
+      console.log('Full KRN:', accountId);
+      console.log('Extracted account ID:', accountIdExtracted);
     }
+    
+    // Try with extracted account ID first (most common)
+    // If that fails, we can try with full KRN (URL encoded)
+    accountId = accountIdExtracted;
     
     // Create identity request with all available scopes
     const identityRequest = {
@@ -93,11 +100,25 @@ app.post('/api/klarna/identity/request', async (req, res) => {
     console.log('Making request to:', apiUrl);
     console.log('Request body:', JSON.stringify(identityRequest, null, 2));
 
+    // Klarna Identity API uses Basic Auth with API key
+    // The API key is typically the client secret (or a separate API key)
+    // Format: Basic <base64-encoded-api-key>
+    // For Identity API, we use the API key directly (not clientId:clientSecret)
+    
+    const apiKey = KLARNA_CONFIG.apiKey || KLARNA_CONFIG.clientSecret;
+    if (!apiKey) {
+      throw new Error('API key (KLARNA_API_KEY or KLARNA_CLIENT_SECRET) is required');
+    }
+    
+    // Basic Auth with just the API key (empty username)
+    const authHeader = `Basic ${Buffer.from(`${apiKey}:`).toString('base64')}`;
+    console.log('Using API key authentication (Basic Auth with API key)');
+
     // Make API call to create identity request
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
-        'Authorization': `Basic ${Buffer.from(`${KLARNA_CONFIG.clientId}:${KLARNA_CONFIG.clientSecret}`).toString('base64')}`,
+        'Authorization': authHeader,
         'Content-Type': 'application/json',
         'Klarna-Idempotency-Key': idempotencyKey,
         'Partner-Correlation-Id': `partner-${Date.now()}`
@@ -160,17 +181,24 @@ app.get('/api/klarna/identity/request/:identityRequestId', async (req, res) => {
 
     // Extract account ID from KRN format if needed
     let accountId = KLARNA_CONFIG.accountId;
-    if (accountId.startsWith('krn:')) {
+    if (accountId && accountId.startsWith('krn:')) {
       const parts = accountId.split(':');
       accountId = parts[parts.length - 1];
     }
+
+    // Use same auth method as create request
+    const apiKey = KLARNA_CONFIG.apiKey || KLARNA_CONFIG.clientSecret;
+    if (!apiKey) {
+      return res.status(500).json({ error: 'API key (KLARNA_API_KEY or KLARNA_CLIENT_SECRET) is required' });
+    }
+    const authHeader = `Basic ${Buffer.from(`${apiKey}:`).toString('base64')}`;
 
     const response = await fetch(
       `${KLARNA_CONFIG.apiUrl}/v2/accounts/${accountId}/identity/requests/${identityRequestId}`,
       {
         method: 'GET',
         headers: {
-          'Authorization': `Basic ${Buffer.from(`${KLARNA_CONFIG.clientId}:${KLARNA_CONFIG.clientSecret}`).toString('base64')}`,
+          'Authorization': authHeader,
           'Content-Type': 'application/json'
         }
       }
