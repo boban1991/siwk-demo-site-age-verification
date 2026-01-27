@@ -50,6 +50,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const maxDate = today.toISOString().split('T')[0];
     birthdateInput.setAttribute('max', maxDate);
     
+    // Check for reset parameter in URL (for testing: add ?reset=true to URL)
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('reset') === 'true') {
+        localStorage.removeItem(VERIFICATION_KEY);
+        localStorage.removeItem(VERIFICATION_TIMESTAMP_KEY);
+        // Clean up URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    
     // Check if already verified
     if (checkVerificationStatus()) {
         showMainContent();
@@ -121,13 +130,15 @@ document.addEventListener('DOMContentLoaded', () => {
         // Show loading state
         klarnaVerifyBtn.disabled = true;
         klarnaVerifyBtn.innerHTML = `
-            <svg class="spinner" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-dasharray="32" stroke-dashoffset="32">
-                    <animate attributeName="stroke-dasharray" dur="2s" values="0 32;16 16;0 32;0 32" repeatCount="indefinite"/>
-                    <animate attributeName="stroke-dashoffset" dur="2s" values="0;-16;-32;-32" repeatCount="indefinite"/>
-                </circle>
-            </svg>
-            Verifying...
+            <span class="klarna-button-content">
+                <svg class="spinner" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="32" stroke-dashoffset="32">
+                        <animate attributeName="stroke-dasharray" dur="2s" values="0 32;16 16;0 32;0 32" repeatCount="indefinite"/>
+                        <animate attributeName="stroke-dashoffset" dur="2s" values="0;-16;-32;-32" repeatCount="indefinite"/>
+                    </circle>
+                </svg>
+                <span class="klarna-button-text">Verifying...</span>
+            </span>
         `;
         
         try {
@@ -147,36 +158,51 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // If Klarna returns a verification URL, redirect to it
             if (data.verificationUrl) {
+                // Redirect to Klarna for actual verification
                 window.location.href = data.verificationUrl;
                 return;
             }
             
-            // If verification is immediate (for testing/demo)
-            if (data.success) {
-                // For now, simulate success (replace with actual Klarna response handling)
-                setVerificationStatus(true);
-                showResult('Age verified successfully with Klarna!', 'success');
-                
-                setTimeout(() => {
-                    showMainContent();
-                }, 1500);
-            } else {
-                throw new Error('Verification was not successful');
+            // If verification was initiated but no URL yet (waiting for implementation)
+            if (data.initiated) {
+                showResult('Verification initiated. Please wait for Klarna API integration to complete.', 'error');
+                // Reset button so user can try again
+                klarnaVerifyBtn.disabled = false;
+                klarnaVerifyBtn.innerHTML = `
+                    <span class="klarna-button-content">
+                        <span class="klarna-logo">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="currentColor"/>
+                                <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </span>
+                        <span class="klarna-button-text">Continue with Klarna</span>
+                    </span>
+                `;
+                return;
             }
+            
+            // Only set verification status if we get actual success from callback
+            throw new Error('Verification URL not provided. Please complete Klarna API integration.');
         } catch (error) {
             console.error('Klarna verification error:', error);
             showResult(error.message || 'An error occurred during verification. Please try again or use manual verification.', 'error');
             
             // Reset button
             klarnaVerifyBtn.disabled = false;
-            klarnaVerifyBtn.innerHTML = `
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="currentColor"/>
-                    <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                Verify with Klarna
-            `;
+                klarnaVerifyBtn.innerHTML = `
+                    <span class="klarna-button-content">
+                        <span class="klarna-logo">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="currentColor"/>
+                                <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </span>
+                        <span class="klarna-button-text">Continue with Klarna</span>
+                    </span>
+                `;
         }
     }
     
@@ -186,12 +212,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const verified = urlParams.get('verified');
         
         if (verified === 'true') {
+            // Only set verification status when actually verified via callback
             setVerificationStatus(true);
             showMainContent();
             // Clean up URL
             window.history.replaceState({}, document.title, window.location.pathname);
         } else if (verified === 'false') {
-            showResult('Age verification failed. Please try again.', 'error');
+            // Show error but don't hide the modal - let user try again
+            if (ageModal && ageModal.style.display !== 'none') {
+                showResult('Age verification failed. Please try again.', 'error');
+            }
             // Clean up URL
             window.history.replaceState({}, document.title, window.location.pathname);
         }
@@ -377,8 +407,9 @@ style.textContent = `
     @keyframes spin {
         to { transform: rotate(360deg); }
     }
-    .spinner {
+    .klarna-button .spinner {
         animation: spin 1s linear infinite;
+        color: #FFA8CD;
     }
 `;
 document.head.appendChild(style);

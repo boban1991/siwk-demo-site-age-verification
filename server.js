@@ -67,12 +67,15 @@ app.post('/api/klarna/verify', async (req, res) => {
     */
 
     // For now, return a mock response
+    // TODO: Replace with actual Klarna API call that returns a verification URL
+    // Don't return success: true here - only return success after actual verification
     res.json({
-      success: true,
+      initiated: true,
       message: 'Klarna verification initiated',
       // In real implementation, return the verification URL or session ID
-      verificationUrl: null, // This would be the URL to redirect to
+      verificationUrl: null, // This would be the URL to redirect to for actual verification
       sessionId: null, // This would be the session ID
+      // Note: Don't set verification status until user completes the flow
     });
   } catch (error) {
     console.error('Klarna verification error:', error);
