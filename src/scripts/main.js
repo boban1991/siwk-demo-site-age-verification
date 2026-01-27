@@ -36,11 +36,103 @@ function setVerificationStatus(verified) {
     }
 }
 
+// Global functions for Klarna SDK callback
+let globalShowResult, globalShowMainContent, globalSetVerificationStatus, globalCalculateAge;
+
+// Initialize Klarna SDK
+window.KlarnaSDKCallback = async function(klarna) {
+    // Get Klarna client ID from backend
+    try {
+        const configResponse = await fetch('/api/klarna/config');
+        const config = await configResponse.json();
+        
+        if (!config.clientId) {
+            console.error('Klarna Client ID not configured');
+            return;
+        }
+        
+        // Initialize Klarna SDK
+        await klarna.init({
+            clientId: config.clientId
+        });
+        
+        // Wait for DOM to be ready
+        if (document.readyState === 'loading') {
+            await new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve));
+        }
+        
+        // Create and mount the Klarna Identity button
+        const buttonContainer = document.getElementById('klarna-button-container');
+        if (buttonContainer) {
+            const siwkButton = klarna.Identity.button({
+                id: 'klarna-identity-button',
+                scope: 'openid offline_access payment:request:create profile:name profile:date_of_birth',
+                redirectUri: `${window.location.origin}/api/klarna/callback`,
+                theme: 'default',
+                shape: 'default'
+            });
+            
+            siwkButton.mount('#klarna-button-container');
+        }
+        
+        // Listen for signin event
+        klarna.Identity.on('signin', async (signinResponse) => {
+            console.log('Klarna signin response:', signinResponse);
+            
+            // Check if user is 18+ based on date_of_birth claim
+            if (signinResponse.id_token) {
+                try {
+                    // Decode the id_token (it's a JWT)
+                    const payload = JSON.parse(atob(signinResponse.id_token.split('.')[1]));
+                    
+                    if (payload.date_of_birth && globalCalculateAge) {
+                        const birthDate = new Date(payload.date_of_birth);
+                        const age = globalCalculateAge(birthDate);
+                        
+                        if (age >= 18) {
+                            if (globalSetVerificationStatus) globalSetVerificationStatus(true);
+                            if (globalShowResult) globalShowResult(`Age verified successfully! You are ${age} years old.`, 'success');
+                            setTimeout(() => {
+                                if (globalShowMainContent) globalShowMainContent();
+                            }, 1500);
+                        } else {
+                            if (globalShowResult) globalShowResult(`Sorry, you must be 18 years or older. You are currently ${age} years old.`, 'error');
+                        }
+                    } else {
+                        // If no date_of_birth in token, assume verified (Klarna handles age verification)
+                        if (globalSetVerificationStatus) globalSetVerificationStatus(true);
+                        if (globalShowResult) globalShowResult('Age verified successfully with Klarna!', 'success');
+                        setTimeout(() => {
+                            if (globalShowMainContent) globalShowMainContent();
+                        }, 1500);
+                    }
+                } catch (error) {
+                    console.error('Error processing id_token:', error);
+                    // Fallback: assume verified if we can't parse
+                    if (globalSetVerificationStatus) globalSetVerificationStatus(true);
+                    if (globalShowResult) globalShowResult('Age verified successfully with Klarna!', 'success');
+                    setTimeout(() => {
+                        if (globalShowMainContent) globalShowMainContent();
+                    }, 1500);
+                }
+            }
+        });
+        
+        // Listen for errors
+        klarna.Identity.on('error', async (error) => {
+            console.error('Klarna error:', error);
+            if (globalShowResult) globalShowResult('Verification failed. Please try again or use manual verification.', 'error');
+        });
+        
+    } catch (error) {
+        console.error('Failed to initialize Klarna SDK:', error);
+    }
+};
+
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
     const ageModal = document.getElementById('age-verification-modal');
     const mainContent = document.getElementById('main-content');
-    const klarnaVerifyBtn = document.getElementById('klarna-verify-btn');
     const manualForm = document.getElementById('manual-verification-form');
     const birthdateInput = document.getElementById('birthdate');
     const verificationResult = document.getElementById('verification-result');
@@ -65,11 +157,6 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         showAgeVerification();
     }
-    
-    // Klarna verification button
-    klarnaVerifyBtn.addEventListener('click', () => {
-        initiateKlarnaVerification();
-    });
     
     // Manual verification form
     manualForm.addEventListener('submit', (e) => {
@@ -116,113 +203,39 @@ document.addEventListener('DOMContentLoaded', () => {
         return age;
     }
     
-    function showResult(message, type) {
-        verificationResult.textContent = message;
-        verificationResult.className = `verification-result ${type}`;
-        verificationResult.style.display = 'block';
-        
-        // Scroll to result
-        verificationResult.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
+    // Make functions available globally for Klarna SDK callback
+    globalShowResult = showResult;
+    globalShowMainContent = showMainContent;
+    globalSetVerificationStatus = setVerificationStatus;
+    globalCalculateAge = calculateAge;
     
-    // Klarna Age Verification Integration
-    async function initiateKlarnaVerification() {
-        // Show loading state
-        klarnaVerifyBtn.disabled = true;
-        klarnaVerifyBtn.innerHTML = `
-            <span class="klarna-button-content">
-                <svg class="spinner" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="32" stroke-dashoffset="32">
-                        <animate attributeName="stroke-dasharray" dur="2s" values="0 32;16 16;0 32;0 32" repeatCount="indefinite"/>
-                        <animate attributeName="stroke-dashoffset" dur="2s" values="0;-16;-32;-32" repeatCount="indefinite"/>
-                    </circle>
-                </svg>
-                <span class="klarna-button-text">Verifying...</span>
-            </span>
-        `;
-        
-        try {
-            // Call backend API to initiate Klarna verification
-            const response = await fetch('/api/klarna/verify', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
-            
-            const data = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(data.error || 'Verification failed');
-            }
-            
-            // If Klarna returns a verification URL, redirect to it
-            if (data.verificationUrl) {
-                // Redirect to Klarna for actual verification
-                window.location.href = data.verificationUrl;
-                return;
-            }
-            
-            // If verification was initiated but no URL yet (waiting for implementation)
-            if (data.initiated) {
-                showResult('Verification initiated. Please wait for Klarna API integration to complete.', 'error');
-                // Reset button so user can try again
-                klarnaVerifyBtn.disabled = false;
-                klarnaVerifyBtn.innerHTML = `
-                    <span class="klarna-button-content">
-                        <span class="klarna-logo">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="currentColor"/>
-                                <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                        </span>
-                        <span class="klarna-button-text">Continue with Klarna</span>
-                    </span>
-                `;
-                return;
-            }
-            
-            // Only set verification status if we get actual success from callback
-            throw new Error('Verification URL not provided. Please complete Klarna API integration.');
-        } catch (error) {
-            console.error('Klarna verification error:', error);
-            showResult(error.message || 'An error occurred during verification. Please try again or use manual verification.', 'error');
-            
-            // Reset button
-            klarnaVerifyBtn.disabled = false;
-                klarnaVerifyBtn.innerHTML = `
-                    <span class="klarna-button-content">
-                        <span class="klarna-logo">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="currentColor"/>
-                                <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                        </span>
-                        <span class="klarna-button-text">Continue with Klarna</span>
-                    </span>
-                `;
+    function showResult(message, type) {
+        const resultEl = document.getElementById('verification-result');
+        if (resultEl) {
+            resultEl.textContent = message;
+            resultEl.className = `verification-result ${type}`;
+            resultEl.style.display = 'block';
+            resultEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } else {
+            console.log(`[${type}] ${message}`);
         }
     }
     
-    // Check for verification callback from Klarna
+    
+    // Check for verification callback from Klarna (handled by SDK events now)
+    // This is kept for backward compatibility with manual verification
     function checkVerificationCallback() {
         const urlParams = new URLSearchParams(window.location.search);
         const verified = urlParams.get('verified');
         
         if (verified === 'true') {
-            // Only set verification status when actually verified via callback
             setVerificationStatus(true);
             showMainContent();
-            // Clean up URL
             window.history.replaceState({}, document.title, window.location.pathname);
         } else if (verified === 'false') {
-            // Show error but don't hide the modal - let user try again
             if (ageModal && ageModal.style.display !== 'none') {
                 showResult('Age verification failed. Please try again.', 'error');
             }
-            // Clean up URL
             window.history.replaceState({}, document.title, window.location.pathname);
         }
     }

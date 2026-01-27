@@ -84,34 +84,55 @@ app.post('/api/klarna/verify', async (req, res) => {
 });
 
 // API endpoint for Klarna callback (after user completes verification)
+// This serves the callback.html page that the Klarna SDK expects
 app.get('/api/klarna/callback', async (req, res) => {
   try {
-    const { code, session_id } = req.query;
-    
-    if (!code && !session_id) {
-      return res.status(400).json({ error: 'Missing verification code or session ID' });
-    }
-
-    // TODO: Verify the code/session with Klarna API
-    /*
-    const response = await fetch(`${KLARNA_CONFIG.apiUrl}/age-verification/v1/sessions/${session_id}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Basic ${Buffer.from(`${KLARNA_CONFIG.clientId}:${KLARNA_CONFIG.clientSecret}`).toString('base64')}`,
-      }
-    });
-    
-    const data = await response.json();
-    
-    if (data.verified && data.age >= 18) {
-      return res.redirect('/?verified=true');
-    } else {
-      return res.redirect('/?verified=false');
-    }
-    */
-
-    // For now, redirect to home with verification status
-    res.redirect('/?verified=true');
+    // Serve a callback page that the Klarna SDK can use
+    // The SDK will handle the OAuth flow and emit events
+    const callbackHtml = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Klarna Verification Callback</title>
+    <script defer src="https://js.klarna.com/web-sdk/v1/klarna.js"></script>
+</head>
+<body>
+    <div style="display: flex; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif;">
+        <p>Completing verification...</p>
+    </div>
+    <script>
+        window.KlarnaSDKCallback = async function(klarna) {
+            try {
+                const configResponse = await fetch('/api/klarna/config');
+                const config = await configResponse.json();
+                
+                await klarna.init({
+                    clientId: config.clientId
+                });
+                
+                // Listen for signin event
+                klarna.Identity.on('signin', async (signinResponse) => {
+                    // Redirect back to main page with success
+                    window.location.href = '/?verified=true';
+                });
+                
+                // Listen for errors
+                klarna.Identity.on('error', async (error) => {
+                    console.error('Klarna error:', error);
+                    window.location.href = '/?verified=false';
+                });
+            } catch (error) {
+                console.error('Callback error:', error);
+                window.location.href = '/?verified=false';
+            }
+        };
+    </script>
+</body>
+</html>
+    `;
+    res.send(callbackHtml);
   } catch (error) {
     console.error('Klarna callback error:', error);
     res.redirect('/?verified=false');
