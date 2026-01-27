@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LuckyBet Casino - Premium Online Gaming</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Age Verification Modal -->
+    <div id="age-verification-modal" class="age-verification-modal">
+        <div class="age-verification-content">
+            <div class="verification-header">
+                <div class="logo-placeholder">
+                    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="40" height="40" rx="8" fill="#FF6B35"/>
+                        <path d="M20 10L25 18H15L20 10Z" fill="white"/>
+                        <path d="M15 22L20 30L25 22H15Z" fill="white"/>
+                    </svg>
+                </div>
+                <h1>Age Verification Required</h1>
+                <p class="verification-subtitle">You must be 18 or older to access this site</p>
+            </div>
+            
+            <div class="verification-body">
+                <div class="legal-notice">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" fill="currentColor"/>
+                    </svg>
+                    <p>This website contains gambling content. By proceeding, you confirm that you are of legal gambling age in your jurisdiction and agree to our Terms of Service.</p>
+                </div>
+
+                <div class="verification-options">
+                    <div class="verification-option">
+                        <h3>Quick & Secure Verification</h3>
+                        <p>Verify your age instantly with Klarna</p>
+                        <button id="klarna-verify-btn" class="btn btn-primary btn-large">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="currentColor"/>
+                                <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Verify with Klarna
+                        </button>
+                    </div>
+                    
+                    <div class="divider">
+                        <span>OR</span>
+                    </div>
+
+                    <div class="verification-option">
+                        <h3>Manual Verification</h3>
+                        <p>Enter your date of birth</p>
+                        <form id="manual-verification-form" class="manual-form">
+                            <div class="form-group">
+                                <label for="birthdate">Date of Birth</label>
+                                <input type="date" id="birthdate" name="birthdate" required>
+                            </div>
+                            <button type="submit" class="btn btn-secondary btn-large">Continue</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div id="verification-result" class="verification-result"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Site Content (Hidden until verified) -->
+    <div id="main-content" class="main-content hidden">
+        <!-- Navigation -->
+        <nav class="navbar">
+            <div class="nav-container">
+                <div class="nav-logo">
+                    <span class="logo-icon">🎰</span>
+                    <span class="logo-text">LuckyBet</span>
+                </div>
+                <ul class="nav-menu">
+                    <li><a href="#home" class="nav-link active">Home</a></li>
+                    <li><a href="#games" class="nav-link">Games</a></li>
+                    <li><a href="#live-casino" class="nav-link">Live Casino</a></li>
+                    <li><a href="#promotions" class="nav-link">Promotions</a></li>
+                    <li><a href="#vip" class="nav-link">VIP</a></li>
+                </ul>
+                <div class="nav-actions">
+                    <button class="btn btn-outline">Sign In</button>
+                    <button class="btn btn-primary">Join Now</button>
+                </div>
+                <button class="mobile-menu-toggle" id="mobile-menu-toggle">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="hero-background">
+                <div class="hero-overlay"></div>
+            </div>
+            <div class="hero-content">
+                <h1 class="hero-title">Welcome to LuckyBet Casino</h1>
+                <p class="hero-subtitle">Experience the thrill of premium online gaming</p>
+                <div class="hero-cta">
+                    <button class="btn btn-hero btn-large">Play Now</button>
+                    <button class="btn btn-hero-outline btn-large">View Games</button>
+                </div>
+                <div class="hero-features">
+                    <div class="feature">
+                        <span class="feature-icon">🎁</span>
+                        <span>Welcome Bonus</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-icon">⚡</span>
+                        <span>Instant Withdrawals</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-icon">🔒</span>
+                        <span>Secure & Licensed</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stats Section -->
+        <section class="stats-section">
+            <div class="container">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">💰</div>
+                        <div class="stat-value">$12.5M</div>
+                        <div class="stat-label">Total Jackpots Won</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">👥</div>
+                        <div class="stat-value">250K+</div>
+                        <div class="stat-label">Active Players</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🎮</div>
+                        <div class="stat-value">2,500+</div>
+                        <div class="stat-label">Games Available</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⚡</div>
+                        <div class="stat-value">24/7</div>
+                        <div class="stat-label">Customer Support</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Games Section -->
+        <section id="games" class="games-section">
+            <div class="container">
+                <div class="section-header">
+                    <h2 class="section-title">Popular Games</h2>
+                    <div class="game-filters">
+                        <button class="filter-btn active" data-filter="all">All</button>
+                        <button class="filter-btn" data-filter="slots">Slots</button>
+                        <button class="filter-btn" data-filter="table">Table Games</button>
+                        <button class="filter-btn" data-filter="jackpot">Jackpots</button>
+                    </div>
+                </div>
+                <div class="games-grid">
+                    <div class="game-card" data-category="slots jackpot">
+                        <div class="game-image" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                            <span class="game-icon">🎰</span>
+                            <div class="game-badge">Jackpot</div>
+                        </div>
+                        <div class="game-info">
+                            <h3>Mega Fortune</h3>
+                            <p>Progressive Jackpot • $2.3M</p>
+                            <div class="game-rating">
+                                <span class="stars">★★★★★</span>
+                                <span class="rating-text">4.9</span>
+                            </div>
+                            <button class="btn btn-game">Play Now</button>
+                        </div>
+                    </div>
+                    <div class="game-card" data-category="table">
+                        <div class="game-image" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                            <span class="game-icon">🃏</span>
+                        </div>
+                        <div class="game-info">
+                            <h3>Blackjack Pro</h3>
+                            <p>Classic Card Game</p>
+                            <div class="game-rating">
+                                <span class="stars">★★★★☆</span>
+                                <span class="rating-text">4.7</span>
+                            </div>
+                            <button class="btn btn-game">Play Now</button>
+                        </div>
+                    </div>
+                    <div class="game-card" data-category="table">
+                        <div class="game-image" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                            <span class="game-icon">🎲</span>
+                        </div>
+                        <div class="game-info">
+                            <h3>Roulette Royale</h3>
+                            <p>European Style</p>
+                            <div class="game-rating">
+                                <span class="stars">★★★★★</span>
+                                <span class="rating-text">4.8</span>
+                            </div>
+                            <button class="btn btn-game">Play Now</button>
+                        </div>
+                    </div>
+                    <div class="game-card" data-category="table">
+                        <div class="game-image" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                            <span class="game-icon">🎴</span>
+                        </div>
+                        <div class="game-info">
+                            <h3>Poker Masters</h3>
+                            <p>Texas Hold'em</p>
+                            <div class="game-rating">
+                                <span class="stars">★★★★☆</span>
+                                <span class="rating-text">4.6</span>
+                            </div>
+                            <button class="btn btn-game">Play Now</button>
+                        </div>
+                    </div>
+                    <div class="game-card" data-category="slots">
+                        <div class="game-image" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                            <span class="game-icon">🎰</span>
+                        </div>
+                        <div class="game-info">
+                            <h3>Starburst</h3>
+                            <p>Classic Slots</p>
+                            <div class="game-rating">
+                                <span class="stars">★★★★★</span>
+                                <span class="rating-text">4.9</span>
+                            </div>
+                            <button class="btn btn-game">Play Now</button>
+                        </div>
+                    </div>
+                    <div class="game-card" data-category="slots jackpot">
+                        <div class="game-image" style="background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);">
+                            <span class="game-icon">🎰</span>
+                            <div class="game-badge">Jackpot</div>
+                        </div>
+                        <div class="game-info">
+                            <h3>Mega Moolah</h3>
+                            <p>Progressive Jackpot • $1.8M</p>
+                            <div class="game-rating">
+                                <span class="stars">★★★★★</span>
+                                <span class="rating-text">4.8</span>
+                            </div>
+                            <button class="btn btn-game">Play Now</button>
+                        </div>
+                    </div>
+                    <div class="game-card" data-category="table">
+                        <div class="game-image" style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);">
+                            <span class="game-icon">🎲</span>
+                        </div>
+                        <div class="game-info">
+                            <h3>Baccarat Elite</h3>
+                            <p>Premium Table Game</p>
+                            <div class="game-rating">
+                                <span class="stars">★★★★☆</span>
+                                <span class="rating-text">4.7</span>
+                            </div>
+                            <button class="btn btn-game">Play Now</button>
+                        </div>
+                    </div>
+                    <div class="game-card" data-category="slots">
+                        <div class="game-image" style="background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);">
+                            <span class="game-icon">🎰</span>
+                        </div>
+                        <div class="game-info">
+                            <h3>Book of Dead</h3>
+                            <p>Adventure Slots</p>
+                            <div class="game-rating">
+                                <span class="stars">★★★★★</span>
+                                <span class="rating-text">4.9</span>
+                            </div>
+                            <button class="btn btn-game">Play Now</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Live Casino Section -->
+        <section id="live-casino" class="live-casino-section">
+            <div class="container">
+                <div class="section-header">
+                    <h2 class="section-title">Live Casino</h2>
+                    <p class="section-subtitle">Experience the thrill of real-time gaming with professional dealers</p>
+                </div>
+                <div class="live-casino-grid">
+                    <div class="live-casino-card featured">
+                        <div class="live-badge">LIVE</div>
+                        <div class="live-viewers">👁 1,234 watching</div>
+                        <div class="live-casino-image" style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
+                            <span class="live-icon">🎥</span>
+                        </div>
+                        <div class="live-casino-info">
+                            <h3>Live Blackjack VIP</h3>
+                            <p>Professional dealer • High stakes</p>
+                            <div class="live-stats">
+                                <span>Min: $50</span>
+                                <span>Max: $10,000</span>
+                            </div>
+                            <button class="btn btn-game">Join Table</button>
+                        </div>
+                    </div>
+                    <div class="live-casino-card">
+                        <div class="live-badge">LIVE</div>
+                        <div class="live-viewers">👁 856 watching</div>
+                        <div class="live-casino-image" style="background: linear-gradient(135deg, #c94b4b 0%, #4b134f 100%);">
+                            <span class="live-icon">🎥</span>
+                        </div>
+                        <div class="live-casino-info">
+                            <h3>Live Roulette</h3>
+                            <p>European Roulette</p>
+                            <div class="live-stats">
+                                <span>Min: $10</span>
+                                <span>Max: $5,000</span>
+                            </div>
+                            <button class="btn btn-game">Join Table</button>
+                        </div>
+                    </div>
+                    <div class="live-casino-card">
+                        <div class="live-badge">LIVE</div>
+                        <div class="live-viewers">👁 642 watching</div>
+                        <div class="live-casino-image" style="background: linear-gradient(135deg, #0f2027 0%, #203a43 100%);">
+                            <span class="live-icon">🎥</span>
+                        </div>
+                        <div class="live-casino-info">
+                            <h3>Live Baccarat</h3>
+                            <p>Punto Banco</p>
+                            <div class="live-stats">
+                                <span>Min: $25</span>
+                                <span>Max: $2,500</span>
+                            </div>
+                            <button class="btn btn-game">Join Table</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Promotions Section -->
+        <section id="promotions" class="promotions-section">
+            <div class="container">
+                <h2 class="section-title">Exclusive Promotions</h2>
+                <div class="promotions-grid">
+                    <div class="promo-card promo-featured">
+                        <div class="promo-badge">New</div>
+                        <h3>Welcome Bonus</h3>
+                        <p class="promo-amount">100% up to $500</p>
+                        <p class="promo-desc">Plus 100 free spins on your first deposit</p>
+                        <div class="promo-terms">Min. deposit $20 • 35x wagering</div>
+                        <button class="btn btn-promo">Claim Now</button>
+                    </div>
+                    <div class="promo-card">
+                        <h3>Weekly Reload</h3>
+                        <p class="promo-amount">50% up to $200</p>
+                        <p class="promo-desc">Every Monday</p>
+                        <div class="promo-terms">Valid every Monday</div>
+                        <button class="btn btn-promo">Learn More</button>
+                    </div>
+                    <div class="promo-card">
+                        <h3>Free Spins Friday</h3>
+                        <p class="promo-amount">50 Free Spins</p>
+                        <p class="promo-desc">Every Friday</p>
+                        <div class="promo-terms">No deposit required</div>
+                        <button class="btn btn-promo">Claim Now</button>
+                    </div>
+                    <div class="promo-card">
+                        <h3>VIP Program</h3>
+                        <p class="promo-amount">Exclusive Rewards</p>
+                        <p class="promo-desc">Join our VIP club</p>
+                        <div class="promo-terms">Tier-based benefits</div>
+                        <button class="btn btn-promo">Join VIP</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Payment Methods Section -->
+        <section class="payment-section">
+            <div class="container">
+                <h2 class="section-title">Secure Payment Methods</h2>
+                <p class="section-subtitle">Fast, secure, and reliable payment options</p>
+                <div class="payment-grid">
+                    <div class="payment-method">
+                        <div class="payment-icon">💳</div>
+                        <span>Credit Cards</span>
+                    </div>
+                    <div class="payment-method">
+                        <div class="payment-icon">🏦</div>
+                        <span>Bank Transfer</span>
+                    </div>
+                    <div class="payment-method">
+                        <div class="payment-icon">📱</div>
+                        <span>E-Wallets</span>
+                    </div>
+                    <div class="payment-method">
+                        <div class="payment-icon">₿</div>
+                        <span>Cryptocurrency</span>
+                    </div>
+                    <div class="payment-method">
+                        <div class="payment-icon">🔐</div>
+                        <span>Klarna</span>
+                    </div>
+                    <div class="payment-method">
+                        <div class="payment-icon">💵</div>
+                        <span>PayPal</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="container">
+                <div class="footer-content">
+                    <div class="footer-section">
+                        <h4>LuckyBet Casino</h4>
+                        <p>Licensed and regulated online casino. Play responsibly.</p>
+                    </div>
+                    <div class="footer-section">
+                        <h4>Support</h4>
+                        <ul>
+                            <li><a href="#">Help Center</a></li>
+                            <li><a href="#">Contact Us</a></li>
+                            <li><a href="#">Responsible Gaming</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-section">
+                        <h4>Legal</h4>
+                        <ul>
+                            <li><a href="#">Terms & Conditions</a></li>
+                            <li><a href="#">Privacy Policy</a></li>
+                            <li><a href="#">Cookie Policy</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-section">
+                        <h4>Licensing</h4>
+                        <p>Licensed by the Malta Gaming Authority</p>
+                        <p>License: MGA/B2C/123/2010</p>
+                        <div class="footer-badges">
+                            <span class="badge">18+</span>
+                            <span class="badge">Responsible Gaming</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="footer-bottom">
+                    <p>&copy; 2026 LuckyBet Casino. All rights reserved. 18+ Only. BeGambleAware.org</p>
+                    <div class="footer-links">
+                        <a href="#">Responsible Gaming</a>
+                        <span>•</span>
+                        <a href="#">Self-Exclusion</a>
+                        <span>•</span>
+                        <a href="#">Deposit Limits</a>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script src="scripts/main.js"></script>
+</body>
+</html>
