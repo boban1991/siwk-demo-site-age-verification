@@ -32,6 +32,24 @@ Click **Add New** for each variable:
 - **Environments:** ✅ Production, ✅ Preview, ✅ Development
 - Click **Save**
 
+#### Variable 4: KLARNA_BASE_URL
+- **Key:** `KLARNA_BASE_URL`
+- **Value:** `https://api-global.test.klarna.com`
+- **Environments:** ✅ Production, ✅ Preview, ✅ Development
+- Click **Save**
+
+#### Variable 5: KLARNA_ACCOUNT_ID
+- **Key:** `KLARNA_ACCOUNT_ID`
+- **Value:** `krn:partner:global:account:test:MI5RSLGHURL`
+- **Environments:** ✅ Production, ✅ Preview, ✅ Development
+- Click **Save**
+
+#### Variable 6: KLARNA_RETURN_URL
+- **Key:** `KLARNA_RETURN_URL`
+- **Value:** `https://siwk-kn-demo.vercel.app` (your Vercel deployment URL)
+- **Environments:** ✅ Production, ✅ Preview, ✅ Development
+- Click **Save**
+
 ### 4. Redeploy Your Application
 
 After adding all variables:
@@ -65,9 +83,10 @@ If you don't have Klarna credentials yet:
 
 **Credentials not working?**
 - Make sure you clicked "Redeploy" after adding variables
-- Check that all three variables are set
+- Check that all six variables are set
 - Verify the values are correct (no extra spaces)
 - Check deployment logs for error messages
+- Make sure KLARNA_RETURN_URL matches your actual Vercel deployment URL
 
 **Need to update credentials?**
 - Go back to Settings → Environment Variables

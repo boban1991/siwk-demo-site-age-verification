@@ -13,9 +13,11 @@ const KLARNA_CONFIG = {
   clientId: process.env.KLARNA_CLIENT_ID,
   clientSecret: process.env.KLARNA_CLIENT_SECRET,
   environment: process.env.KLARNA_ENVIRONMENT || 'sandbox', // 'sandbox' or 'production'
-  apiUrl: process.env.KLARNA_ENVIRONMENT === 'production' 
-    ? 'https://api.klarna.com' 
-    : 'https://api.klarna.com' // Update with actual Klarna API URLs
+  apiUrl: process.env.KLARNA_BASE_URL || 'https://api-global.test.klarna.com',
+  accountId: process.env.KLARNA_ACCOUNT_ID,
+  returnUrl: process.env.KLARNA_RETURN_URL || process.env.VERCEL_URL 
+    ? `https://${process.env.VERCEL_URL}` 
+    : 'https://siwk-kn-demo.vercel.app'
 };
 
 // Route for the main page
@@ -51,9 +53,11 @@ app.post('/api/klarna/verify', async (req, res) => {
       headers: {
         'Authorization': `Basic ${Buffer.from(`${KLARNA_CONFIG.clientId}:${KLARNA_CONFIG.clientSecret}`).toString('base64')}`,
         'Content-Type': 'application/json',
+        'Klarna-Account-Id': KLARNA_CONFIG.accountId, // If required by API
       },
       body: JSON.stringify({
-        redirect_uri: `${req.protocol}://${req.get('host')}/api/klarna/callback`,
+        redirect_uri: `${KLARNA_CONFIG.returnUrl}/api/klarna/callback`,
+        account_id: KLARNA_CONFIG.accountId,
         // Add other required parameters
       })
     });
