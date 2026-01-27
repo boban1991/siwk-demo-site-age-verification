@@ -336,6 +336,12 @@ body {
     border: 1px solid rgba(239, 68, 68, 0.3);
     color: var(--error-color);
     display: block;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 300px;
+    overflow-y: auto;
+    font-size: 0.9rem;
+    line-height: 1.5;
 }
 
 /* Main Content */

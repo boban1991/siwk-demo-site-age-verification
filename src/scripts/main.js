@@ -84,9 +84,27 @@ async function initiateKlarnaIdentityFlow() {
         }
         
         console.log('Response data:', data);
+        console.log('Response status:', response.status);
         
         if (!response.ok) {
-            throw new Error(data.error || data.details || `Failed to create identity request: ${response.status}`);
+            // Log full error details for debugging
+            console.error('Full error response:', JSON.stringify(data, null, 2));
+            console.error('Error details:', data.details);
+            console.error('Error hint:', data.hint);
+            console.error('Account ID used:', data.accountIdUsed);
+            console.error('API URL:', data.apiUrl);
+            console.error('Auth method:', data.authMethod);
+            
+            // Show detailed error message
+            let errorMessage = data.error || `Failed to create identity request: ${response.status}`;
+            if (data.details) {
+                errorMessage += `\n\nDetails: ${typeof data.details === 'string' ? data.details : JSON.stringify(data.details, null, 2)}`;
+            }
+            if (data.hint) {
+                errorMessage += `\n\nHint: ${data.hint}`;
+            }
+            
+            throw new Error(errorMessage);
         }
         
         // Redirect to Klarna identity flow
@@ -107,12 +125,17 @@ async function initiateKlarnaIdentityFlow() {
             errorMessage = error.message;
         }
         
-        // Show error message
+        // Show error message with details
         const resultEl = document.getElementById('verification-result');
         if (resultEl) {
-            resultEl.textContent = errorMessage;
+            // Show a user-friendly message, but log full details to console
+            const userMessage = errorMessage.length > 200 ? errorMessage.substring(0, 200) + '... (check console for full details)' : errorMessage;
+            resultEl.innerHTML = `<div>${userMessage.replace(/\n/g, '<br>')}</div>`;
             resultEl.className = 'verification-result error';
             resultEl.style.display = 'block';
+            
+            // Scroll to error
+            resultEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         } else {
             alert(errorMessage);
         }
