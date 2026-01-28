@@ -267,6 +267,10 @@ app.all('/api/klarna/callback', async (req, res) => {
   }
 });
 
+// Serve static files LAST - after ALL API routes are defined
+// This ensures /api/* routes are handled by Express, not static files
+app.use(express.static(path.join(__dirname, 'src')));
+
 // Export the app for Vercel serverless functions
 module.exports = app;
 
