@@ -204,9 +204,14 @@ function proceedToCheckout() {
 
 // Format customer profile for checkout display
 function formatCustomerProfileForCheckout(customerProfile) {
-    if (!customerProfile) return '';
+    if (!customerProfile) {
+        console.log('formatCustomerProfileForCheckout: No profile provided');
+        return '<div class="checkout-profile-grid"><p>No customer profile data available.</p></div>';
+    }
     
+    console.log('formatCustomerProfileForCheckout: Processing profile:', customerProfile);
     let html = '<div class="checkout-profile-grid">';
+    let hasData = false;
     
     // Name
     if (customerProfile.name) {
@@ -218,6 +223,7 @@ function formatCustomerProfileForCheckout(customerProfile) {
                     <div class="checkout-profile-value">${fullName} ${customerProfile.name.name_verified ? '<span class="verified-badge-small">✓ Verified</span>' : ''}</div>
                 </div>
             `;
+            hasData = true;
         }
     }
     
@@ -229,6 +235,7 @@ function formatCustomerProfileForCheckout(customerProfile) {
                 <div class="checkout-profile-value">${customerProfile.email.email} ${customerProfile.email.email_verified ? '<span class="verified-badge-small">✓ Verified</span>' : ''}</div>
             </div>
         `;
+        hasData = true;
     }
     
     // Phone
@@ -239,6 +246,7 @@ function formatCustomerProfileForCheckout(customerProfile) {
                 <div class="checkout-profile-value">${customerProfile.phone.phone} ${customerProfile.phone.phone_verified ? '<span class="verified-badge-small">✓ Verified</span>' : ''}</div>
             </div>
         `;
+        hasData = true;
     }
     
     // Date of Birth
@@ -256,6 +264,7 @@ function formatCustomerProfileForCheckout(customerProfile) {
                 <div class="checkout-profile-value">${formattedDate} (Age: ${age}) ${customerProfile.date_of_birth.date_of_birth_verified ? '<span class="verified-badge-small">✓ Verified</span>' : ''}</div>
             </div>
         `;
+        hasData = true;
     }
     
     // Billing Address
@@ -275,10 +284,16 @@ function formatCustomerProfileForCheckout(customerProfile) {
                     <div class="checkout-profile-value">${addressParts.join('<br>')}</div>
                 </div>
             `;
+            hasData = true;
         }
     }
     
+    if (!hasData) {
+        html += '<p style="color: var(--text-secondary);">No customer profile data available to display.</p>';
+    }
+    
     html += '</div>';
+    console.log('formatCustomerProfileForCheckout: Generated HTML, hasData:', hasData);
     return html;
 }
 
