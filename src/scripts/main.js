@@ -162,16 +162,30 @@ function proceedToCheckout() {
         
         // Get and display customer profile data if available
         const customerProfile = getStoredCustomerProfile();
+        console.log('=== Checkout: Customer Profile Debug ===');
+        console.log('Stored customer profile:', customerProfile);
+        
         const customerDataSection = document.getElementById('checkout-customer-data');
         const customerProfileData = document.getElementById('checkout-profile-data');
         
+        console.log('Customer data section found:', !!customerDataSection);
+        console.log('Customer profile data element found:', !!customerProfileData);
+        
         if (customerDataSection && customerProfileData) {
             if (customerProfile) {
-                customerProfileData.innerHTML = formatCustomerProfileForCheckout(customerProfile);
+                const profileHTML = formatCustomerProfileForCheckout(customerProfile);
+                console.log('Generated profile HTML:', profileHTML);
+                console.log('Profile HTML length:', profileHTML.length);
+                
+                customerProfileData.innerHTML = profileHTML;
                 customerDataSection.style.display = 'block';
+                console.log('Customer profile section displayed');
             } else {
+                console.log('No customer profile found, hiding section');
                 customerDataSection.style.display = 'none';
             }
+        } else {
+            console.error('Missing elements: customerDataSection=', !!customerDataSection, 'customerProfileData=', !!customerProfileData);
         }
         
         // Show checkout screen
@@ -318,7 +332,14 @@ function setVerificationStatus(verified, customerProfile = null) {
         localStorage.setItem(VERIFICATION_KEY, 'true');
         localStorage.setItem(VERIFICATION_TIMESTAMP_KEY, new Date().getTime().toString());
         if (customerProfile) {
+            console.log('Storing customer profile to localStorage:', customerProfile);
             localStorage.setItem(CUSTOMER_PROFILE_KEY, JSON.stringify(customerProfile));
+            console.log('Customer profile stored successfully');
+            // Verify it was stored
+            const stored = localStorage.getItem(CUSTOMER_PROFILE_KEY);
+            console.log('Verification: Stored profile exists:', !!stored);
+        } else {
+            console.warn('No customer profile provided to store');
         }
     } else {
         localStorage.removeItem(VERIFICATION_KEY);
@@ -331,7 +352,15 @@ function setVerificationStatus(verified, customerProfile = null) {
 function getStoredCustomerProfile() {
     try {
         const profileJson = localStorage.getItem(CUSTOMER_PROFILE_KEY);
-        return profileJson ? JSON.parse(profileJson) : null;
+        console.log('Retrieving customer profile from localStorage');
+        console.log('Raw stored value:', profileJson);
+        if (profileJson) {
+            const parsed = JSON.parse(profileJson);
+            console.log('Parsed customer profile:', parsed);
+            return parsed;
+        }
+        console.log('No customer profile found in localStorage');
+        return null;
     } catch (e) {
         console.error('Error parsing stored customer profile:', e);
         return null;
@@ -522,8 +551,12 @@ async function fetchAndDisplayIdentityData(identityRequestId) {
         // Check if request is completed
         if (data.state === 'COMPLETED' || data.state === 'APPROVED') {
             const customerProfile = data.state_context?.klarna_customer?.customer_profile;
+            console.log('=== Storing Customer Profile ===');
+            console.log('Customer profile to store:', customerProfile);
+            console.log('Profile exists:', !!customerProfile);
             displayCustomerData(data);
             setVerificationStatus(true, customerProfile);
+            console.log('Verification status set, profile stored');
         } else {
             console.log('Identity request state:', data.state, '- polling...');
             showResult(`Identity request is in state: ${data.state}. Please wait...`, 'info');
@@ -579,7 +612,11 @@ function displayCustomerData(identityData) {
     
     // Log what we're extracting (for debugging, but not shown to user)
     console.log('=== Extracting Customer Data ===');
+    console.log('Full identityData:', identityData);
+    console.log('State context:', identityData.state_context);
+    console.log('Klarna customer:', identityData.state_context?.klarna_customer);
     console.log('Customer Profile:', customerProfile);
+    console.log('Customer Profile keys:', customerProfile ? Object.keys(customerProfile) : 'null');
     
     let html = '';
     
