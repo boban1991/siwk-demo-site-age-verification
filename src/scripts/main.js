@@ -921,51 +921,77 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Checkout button - trigger age verification if needed
-    if (checkoutBtn) {
-        checkoutBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            console.log('Checkout button clicked');
+    // Use event delegation to ensure it works even if button is recreated
+    const handleCheckout = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Checkout button clicked');
+        
+        const cart = getCart();
+        console.log('Cart:', cart);
+        
+        if (cart.length === 0) {
+            alert('Your cart is empty');
+            return;
+        }
+        
+        // Check if cart has age-restricted products
+        const hasAgeRestricted = hasAgeRestrictedProducts();
+        console.log('Has age-restricted products:', hasAgeRestricted);
+        
+        if (hasAgeRestricted) {
+            // Check if user is already verified
+            const isVerified = checkVerificationStatus();
+            console.log('Is verified:', isVerified);
             
-            const cart = getCart();
-            console.log('Cart:', cart);
-            
-            if (cart.length === 0) {
-                alert('Your cart is empty');
-                return;
-            }
-            
-            // Check if cart has age-restricted products
-            const hasAgeRestricted = hasAgeRestrictedProducts();
-            console.log('Has age-restricted products:', hasAgeRestricted);
-            
-            if (hasAgeRestricted) {
-                // Check if user is already verified
-                const isVerified = checkVerificationStatus();
-                console.log('Is verified:', isVerified);
-                
-                if (!isVerified) {
-                    // Show age verification modal
-                    if (cartModal) cartModal.classList.add('hidden');
-                    showAgeVerification();
-                    // Store that we're in checkout flow
-                    sessionStorage.setItem('checkout_pending', 'true');
-                } else {
-                    // Already verified, proceed to checkout
-                    console.log('Proceeding to checkout (already verified)');
-                    proceedToCheckout();
-                }
+            if (!isVerified) {
+                // Show age verification modal
+                if (cartModal) cartModal.classList.add('hidden');
+                showAgeVerification();
+                // Store that we're in checkout flow
+                sessionStorage.setItem('checkout_pending', 'true');
             } else {
-                // No age-restricted products, proceed directly to checkout
-                console.log('Proceeding to checkout (no age-restricted products)');
+                // Already verified, proceed to checkout
+                console.log('Proceeding to checkout (already verified)');
                 proceedToCheckout();
             }
-        });
+        } else {
+            // No age-restricted products, proceed directly to checkout
+            console.log('Proceeding to checkout (no age-restricted products)');
+            proceedToCheckout();
+        }
+    };
+    
+    // Attach directly if button exists
+    if (checkoutBtn) {
+        checkoutBtn.addEventListener('click', handleCheckout);
+        console.log('Checkout button event listener attached');
     } else {
-        console.error('Checkout button not found!');
+        console.error('Checkout button not found on page load!');
+    }
+    
+    // Also use event delegation on the cart modal as a fallback
+    if (cartModal) {
+        cartModal.addEventListener('click', (e) => {
+            if (e.target && (e.target.id === 'checkout-btn' || e.target.closest('#checkout-btn'))) {
+                handleCheckout(e);
+            }
+        });
     }
     
     // Initialize cart UI
     updateCartUI();
+    
+    // Debug: Log button status after a short delay
+    setTimeout(() => {
+        const checkoutBtnCheck = document.getElementById('checkout-btn');
+        console.log('Checkout button check after init:', checkoutBtnCheck);
+        if (checkoutBtnCheck) {
+            console.log('Button is visible:', checkoutBtnCheck.offsetParent !== null);
+            console.log('Button is disabled:', checkoutBtnCheck.disabled);
+            console.log('Button computed style:', window.getComputedStyle(checkoutBtnCheck).pointerEvents);
+        }
+    }, 1000);
 });
 
 // Add spinner animation CSS

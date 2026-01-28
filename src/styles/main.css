@@ -1326,6 +1326,10 @@ body {
 
 .checkout-btn {
     width: 100%;
+    cursor: pointer;
+    pointer-events: auto;
+    z-index: 10;
+    position: relative;
 }
 
 .cart-button {
