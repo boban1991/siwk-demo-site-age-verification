@@ -72,14 +72,8 @@ app.post('/api/klarna/identity/request', async (req, res) => {
     // Generate idempotency key (UUID v4) - required header
     const idempotencyKey = crypto.randomUUID();
     
-    // Extract account ID from KRN format if needed
-    // KRN format: krn:partner:global:account:test:MI5RSLGHURL
-    let accountId = KLARNA_CONFIG.accountId;
-    if (accountId && accountId.startsWith('krn:')) {
-      const parts = accountId.split(':');
-      accountId = parts[parts.length - 1];
-      console.log('Extracted account ID from KRN:', accountId);
-    }
+    // Use account ID as-is from environment variable
+    const accountId = KLARNA_CONFIG.accountId;
     
     // Create identity request according to official documentation
     const identityRequest = {
@@ -193,12 +187,8 @@ app.get('/api/klarna/identity/request/:identityRequestId', async (req, res) => {
       });
     }
 
-    // Extract account ID from KRN format if needed
-    let accountId = KLARNA_CONFIG.accountId;
-    if (accountId && accountId.startsWith('krn:')) {
-      const parts = accountId.split(':');
-      accountId = parts[parts.length - 1];
-    }
+    // Use account ID as-is from environment variable
+    const accountId = KLARNA_CONFIG.accountId;
 
     console.log('Reading identity request with Basic Auth and X-Klarna-Customer-Region:', KLARNA_CONFIG.customerRegion);
 
