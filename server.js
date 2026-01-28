@@ -191,6 +191,7 @@ app.post('/api/klarna/identity/request', async (req, res) => {
       let errorType = null;
       let errorCode = null;
       let errorMessage = null;
+      let validationErrors = null;
       
       try {
         const errorJson = JSON.parse(errorText);
@@ -199,12 +200,22 @@ app.post('/api/klarna/identity/request', async (req, res) => {
         errorType = errorJson.error_type || errorJson.errorType;
         errorCode = errorJson.error_code || errorJson.errorCode;
         errorMessage = errorJson.error_message || errorJson.errorMessage;
+        validationErrors = errorJson.validation_errors || errorJson.details || errorJson.errors;
         console.error('Parsed error:', errorDetails);
         if (errorId) {
           console.error('Klarna Error ID:', errorId, '- Use this ID when contacting Klarna support');
         }
+        if (validationErrors) {
+          console.error('Validation errors:', JSON.stringify(validationErrors, null, 2));
+        }
       } catch (e) {
         // Not JSON, use as-is
+      }
+      
+      // Log the exact request body for debugging validation errors
+      if (response.status === 400) {
+        console.error('Request body sent to Klarna:', JSON.stringify(identityRequest, null, 2));
+        console.error('Return URL:', identityRequest.customer_interaction_config.return_url);
       }
       
       if (response.status === 401) {
@@ -212,7 +223,7 @@ app.post('/api/klarna/identity/request', async (req, res) => {
         console.error('Verify: 1) KLARNA_USER_NAME and KLARNA_PASSWORD are correct, 2) They match the test environment, 3) Account ID is correct');
       }
       
-      return res.status(response.status).json({ 
+      const errorResponse = {
         error: `Klarna API error: ${response.status}`,
         error_id: errorId,
         error_type: errorType,
@@ -222,7 +233,15 @@ app.post('/api/klarna/identity/request', async (req, res) => {
         accountIdUsed: accountId,
         apiUrl: apiUrl,
         hint: errorId ? `Klarna Error ID: ${errorId} - Use this ID when contacting Klarna support` : (response.status === 401 ? 'Authentication failed. Verify KLARNA_USER_NAME, KLARNA_PASSWORD, and KLARNA_ACCOUNT_ID are correct and match the test environment.' : undefined)
-      });
+      };
+      
+      // Add validation-specific fields for 400 errors
+      if (response.status === 400) {
+        errorResponse.validation_errors = validationErrors;
+        errorResponse.requestBody = identityRequest;
+      }
+      
+      return res.status(response.status).json(errorResponse);
     }
 
     const data = await response.json();
