@@ -274,18 +274,6 @@ app.all('/api/klarna/callback', async (req, res) => {
   }
 });
 
-// Catch-all for unmatched API routes (for debugging)
-app.use('/api', (req, res, next) => {
-  console.log('Unmatched API route:', req.method, req.path, req.url);
-  res.status(404).json({ 
-    error: 'API route not found', 
-    method: req.method, 
-    path: req.path, 
-    url: req.url,
-    availableRoutes: ['/api/test', '/api/klarna/config', '/api/klarna/identity/request', '/api/klarna/callback']
-  });
-});
-
 // Serve static files LAST - after ALL API routes are defined
 // This ensures /api/* routes are handled by Express, not static files
 app.use(express.static(path.join(__dirname, 'src')));
