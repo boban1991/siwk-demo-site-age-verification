@@ -263,70 +263,86 @@ function displayCustomerData(identityData) {
     
     let html = '';
     
-    // Customer Token
-    if (customerToken) {
-        html += `
-            <div class="data-item">
-                <div class="data-label">Customer Token</div>
-                <div class="data-value token-value">${customerToken.substring(0, 50)}...</div>
-            </div>
-        `;
-    }
-    
-    // Name
+    // Name - Most prominent
     if (customerProfile?.name) {
         const fullName = `${customerProfile.name.given_name || ''} ${customerProfile.name.family_name || ''}`.trim();
-        html += `
-            <div class="data-item">
-                <div class="data-label">Name</div>
-                <div class="data-value">${fullName || 'N/A'}</div>
-                ${customerProfile.name.name_verified ? '<span class="verified-badge">✓ Verified</span>' : ''}
-            </div>
-        `;
+        if (fullName) {
+            html += `
+                <div class="data-item data-item-featured">
+                    <div class="data-item-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21M16 7C16 9.20914 14.2091 11 12 11C9.79086 11 8 9.20914 8 7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <div class="data-item-content">
+                        <div class="data-label">Full Name</div>
+                        <div class="data-value data-value-large">${fullName}</div>
+                    </div>
+                    ${customerProfile.name.name_verified ? '<span class="verified-badge">✓ Verified</span>' : ''}
+                </div>
+            `;
+        }
+    }
+    
+    // Date of Birth & Age - Important for pharmacy
+    if (customerProfile?.date_of_birth) {
+        const dob = customerProfile.date_of_birth.date_of_birth;
+        const age = dob ? calculateAgeFromDOB(dob) : null;
+        if (dob) {
+            const formattedDate = new Date(dob).toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+            html += `
+                <div class="data-item">
+                    <div class="data-item-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M8 2V6M16 2V6M3 10H21M5 4H19C20.1046 4 21 4.89543 21 6V20C21 21.1046 20.1046 22 19 22H5C3.89543 22 3 21.1046 3 20V6C3 4.89543 3.89543 4 5 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <div class="data-item-content">
+                        <div class="data-label">Date of Birth</div>
+                        <div class="data-value">${formattedDate}${age !== null ? ` <span class="age-badge">Age: ${age}</span>` : ''}</div>
+                    </div>
+                    ${customerProfile.date_of_birth.date_of_birth_verified ? '<span class="verified-badge">✓ Verified</span>' : ''}
+                </div>
+            `;
+        }
     }
     
     // Email
-    if (customerProfile?.email) {
+    if (customerProfile?.email?.email) {
         html += `
             <div class="data-item">
-                <div class="data-label">Email</div>
-                <div class="data-value">${customerProfile.email.email || 'N/A'}</div>
+                <div class="data-item-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 8L10.89 13.26C11.2187 13.4793 11.6049 13.5963 12 13.5963C12.3951 13.5963 12.7813 13.4793 13.11 13.26L21 8M5 19H19C19.5304 19 20.0391 18.7893 20.4142 18.4142C20.7893 18.0391 21 17.5304 21 17V7C21 6.46957 20.7893 5.96086 20.4142 5.58579C20.0391 5.21071 19.5304 5 19 5H5C4.46957 5 3.96086 5.21071 3.58579 5.58579C3.21071 5.96086 3 6.46957 3 7V17C3 17.5304 3.21071 18.0391 3.58579 18.4142C3.96086 18.7893 4.46957 19 5 19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div class="data-item-content">
+                    <div class="data-label">Email Address</div>
+                    <div class="data-value">${customerProfile.email.email}</div>
+                </div>
                 ${customerProfile.email.email_verified ? '<span class="verified-badge">✓ Verified</span>' : ''}
             </div>
         `;
     }
     
     // Phone
-    if (customerProfile?.phone) {
+    if (customerProfile?.phone?.phone) {
         html += `
             <div class="data-item">
-                <div class="data-label">Phone</div>
-                <div class="data-value">${customerProfile.phone.phone || 'N/A'}</div>
+                <div class="data-item-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 5C3 3.89543 3.89543 3 5 3H8.27924C8.70967 3 9.09181 3.27543 9.22792 3.68377L10.7257 8.17721C10.8831 8.64932 10.6694 9.16531 10.2243 9.38787L7.96701 10.5165C9.06925 12.9612 11.0388 14.9308 13.4835 16.033L14.6121 13.7757C14.8347 13.3306 15.3507 13.1169 15.8228 13.2743L20.3162 14.7721C20.7246 14.9082 21 15.2903 21 15.7208V19C21 20.1046 20.1046 21 19 21H18C9.71573 21 3 14.2843 3 6V5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div class="data-item-content">
+                    <div class="data-label">Phone Number</div>
+                    <div class="data-value">${customerProfile.phone.phone}</div>
+                </div>
                 ${customerProfile.phone.phone_verified ? '<span class="verified-badge">✓ Verified</span>' : ''}
-            </div>
-        `;
-    }
-    
-    // Date of Birth
-    if (customerProfile?.date_of_birth) {
-        const dob = customerProfile.date_of_birth.date_of_birth;
-        const age = dob ? calculateAgeFromDOB(dob) : null;
-        html += `
-            <div class="data-item">
-                <div class="data-label">Date of Birth</div>
-                <div class="data-value">${dob || 'N/A'} ${age !== null ? `(Age: ${age})` : ''}</div>
-                ${customerProfile.date_of_birth.date_of_birth_verified ? '<span class="verified-badge">✓ Verified</span>' : ''}
-            </div>
-        `;
-    }
-    
-    
-    // Customer ID
-    if (customerProfile?.customer_id) {
-        html += `
-            <div class="data-item">
-                <div class="data-label">Customer ID</div>
-                <div class="data-value">${customerProfile.customer_id.customer_id || 'N/A'}</div>
             </div>
         `;
     }
@@ -334,30 +350,53 @@ function displayCustomerData(identityData) {
     // Billing Address
     if (customerProfile?.billing_address) {
         const addr = customerProfile.billing_address;
+        const addressParts = [
+            addr.street_address,
+            addr.street_address2,
+            `${addr.postal_code || ''} ${addr.city || ''}`.trim(),
+            `${addr.region || ''} ${addr.country || ''}`.trim()
+        ].filter(part => part && part.trim());
+        
+        if (addressParts.length > 0) {
+            html += `
+                <div class="data-item">
+                    <div class="data-item-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M21 10C21 17 12 23 12 23C12 23 3 17 3 10C3 7.61305 3.94821 5.32387 5.63604 3.63604C7.32387 1.94821 9.61305 1 12 1C14.3869 1 16.6761 1.94821 18.364 3.63604C20.0518 5.32387 21 7.61305 21 10Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M12 13C13.6569 13 15 11.6569 15 10C15 8.34315 13.6569 7 12 7C10.3431 7 9 8.34315 9 10C9 11.6569 10.3431 13 12 13Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <div class="data-item-content">
+                        <div class="data-label">Billing Address</div>
+                        <div class="data-value">${addressParts.join('<br>')}</div>
+                    </div>
+                </div>
+            `;
+        }
+    }
+    
+    // Customer ID (less prominent)
+    if (customerProfile?.customer_id?.customer_id) {
         html += `
-            <div class="data-item">
-                <div class="data-label">Billing Address</div>
-                <div class="data-value">
-                    ${addr.street_address || ''} ${addr.street_address2 || ''}<br>
-                    ${addr.postal_code || ''} ${addr.city || ''}<br>
-                    ${addr.region || ''} ${addr.country || ''}
+            <div class="data-item data-item-minor">
+                <div class="data-item-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M10 6H5C4.46957 6 3.96086 6.21071 3.58579 6.58579C3.21071 6.96086 3 7.46957 3 8V19C3 19.5304 3.21071 20.0391 3.58579 20.4142C3.96086 20.7893 4.46957 21 5 21H16C16.5304 21 17.0391 20.7893 17.4142 20.4142C17.7893 20.0391 18 19.5304 18 19V14M21 3H15M21 3L18 6M21 3L18 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div class="data-item-content">
+                    <div class="data-label">Customer ID</div>
+                    <div class="data-value data-value-small">${customerProfile.customer_id.customer_id}</div>
                 </div>
             </div>
         `;
     }
     
-    // Raw data (for debugging)
-    html += `
-        <div class="data-item full-width">
-            <div class="data-label">Raw Response Data</div>
-            <div class="data-value">
-                <pre class="raw-data">${JSON.stringify(identityData, null, 2)}</pre>
-            </div>
-        </div>
-    `;
-    
     dataContent.innerHTML = html;
     successScreen.classList.remove('hidden');
+    
+    // Scroll to top of success screen
+    successScreen.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // Initialize the application
@@ -593,10 +632,10 @@ document.addEventListener('DOMContentLoaded', () => {
     sections.forEach(section => observer.observe(section));
 });
 
-// Game Filter Functionality
+// Product Filter Functionality
 document.addEventListener('DOMContentLoaded', () => {
     const filterButtons = document.querySelectorAll('.filter-btn');
-    const gameCards = document.querySelectorAll('.game-card');
+    const productCards = document.querySelectorAll('.game-card'); // Using same class name for products
     
     filterButtons.forEach(button => {
         button.addEventListener('click', () => {
@@ -606,8 +645,8 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const filter = button.getAttribute('data-filter');
             
-            // Filter game cards
-            gameCards.forEach(card => {
+            // Filter product cards
+            productCards.forEach(card => {
                 if (filter === 'all') {
                     card.style.display = 'block';
                     setTimeout(() => {
@@ -634,8 +673,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
     
-    // Initialize game cards with transition
-    gameCards.forEach(card => {
+    // Initialize product cards with transition
+    productCards.forEach(card => {
         card.style.transition = 'opacity 0.3s, transform 0.3s';
     });
 });
@@ -649,11 +688,11 @@ document.addEventListener('DOMContentLoaded', () => {
     heroButtons.forEach(button => {
         button.addEventListener('click', (e) => {
             e.preventDefault();
-            if (button.textContent.includes('View Games') || button.textContent.includes('Games')) {
-                const gamesSection = document.getElementById('games');
-                if (gamesSection) {
+            if (button.textContent.includes('View Products') || button.textContent.includes('Products')) {
+                const productsSection = document.getElementById('products');
+                if (productsSection) {
                     const offset = 80;
-                    const elementPosition = gamesSection.getBoundingClientRect().top;
+                    const elementPosition = productsSection.getBoundingClientRect().top;
                     const offsetPosition = elementPosition + window.pageYOffset - offset;
                     window.scrollTo({
                         top: offsetPosition,
@@ -661,18 +700,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 }
             } else {
-                // "Play Now" button - could open registration or game selection
-                console.log('Play Now clicked');
+                // "Shop Now" button - could open product catalog
+                console.log('Shop Now clicked');
             }
         });
     });
     
-    // Handle game and promo buttons
+    // Handle product and offer buttons
     gameButtons.forEach(button => {
         button.addEventListener('click', (e) => {
             e.preventDefault();
-            // In a real application, this would navigate to the game or trigger a modal
-            console.log('Game/action clicked:', button.textContent);
+            // In a real application, this would add to cart or navigate to product page
+            console.log('Product/action clicked:', button.textContent);
             // For demo purposes, show a message
             if (!button.closest('.age-verification-modal')) {
                 // You could add a toast notification here

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LuckyBet Casino - Premium Online Gaming</title>
+    <title>Northside Pharmacy (Demo) - Your Trusted Health Partner</title>
     <link rel="stylesheet" href="styles/main.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,13 +16,13 @@
             <div class="verification-header">
                 <div class="logo-placeholder">
                     <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect width="40" height="40" rx="8" fill="#FF6B35"/>
-                        <path d="M20 10L25 18H15L20 10Z" fill="white"/>
-                        <path d="M15 22L20 30L25 22H15Z" fill="white"/>
+                        <rect width="40" height="40" rx="8" fill="#2563EB"/>
+                        <path d="M20 8L12 14V26L20 32L28 26V14L20 8Z" fill="white"/>
+                        <circle cx="20" cy="20" r="4" fill="#2563EB"/>
                     </svg>
                 </div>
                 <h1>Age Verification Required</h1>
-                <p class="verification-subtitle">You must be 18 or older to access this site</p>
+                <p class="verification-subtitle">You must be 18 or older to purchase age-restricted products</p>
             </div>
             
             <div class="verification-body">
@@ -30,7 +30,7 @@
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" fill="currentColor"/>
                     </svg>
-                    <p>This website contains gambling content. By proceeding, you confirm that you are of legal gambling age in your jurisdiction and agree to our Terms of Service.</p>
+                    <p>This website contains age-restricted products (medications, supplements, and health products). By proceeding, you confirm that you are of legal age in your jurisdiction and agree to our Terms of Service and Medication Safety Policy.</p>
                 </div>
 
                 <div class="verification-options">
@@ -77,20 +77,49 @@
     <div id="success-screen" class="success-screen hidden">
         <div class="success-content">
             <div class="success-header">
-                <div class="success-icon">✅</div>
-                <h1>Verification Successful!</h1>
-                <p>Your identity has been verified with Klarna</p>
+                <div class="success-icon-wrapper">
+                    <svg class="success-checkmark" width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="40" cy="40" r="40" fill="#10B981" opacity="0.1"/>
+                        <circle cx="40" cy="40" r="32" fill="#10B981"/>
+                        <path d="M28 40L36 48L52 32" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <h1>Age Verification Complete!</h1>
+                <p class="success-subtitle">Your identity has been successfully verified with Klarna</p>
+                <div class="verification-badge-large">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Verified</span>
+                </div>
             </div>
             
             <div class="customer-data">
-                <h2>Your Profile Data</h2>
+                <div class="section-divider">
+                    <span>Your Verified Information</span>
+                </div>
                 <div id="customer-data-content" class="data-grid">
                     <!-- Data will be populated here -->
                 </div>
             </div>
             
+            <div class="success-info">
+                <div class="info-item">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M12 16V12M12 8H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>You can now access age-restricted products on our pharmacy</span>
+                </div>
+            </div>
+            
             <div class="success-actions">
-                <button id="continue-btn" class="btn btn-primary btn-large">Continue to Site</button>
+                <button id="continue-btn" class="btn btn-primary btn-large">
+                    <span>Continue Shopping</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
                 <button id="reset-btn" class="btn btn-secondary">Start Over</button>
             </div>
         </div>
@@ -102,19 +131,19 @@
         <nav class="navbar">
             <div class="nav-container">
                 <div class="nav-logo">
-                    <span class="logo-icon">🎰</span>
-                    <span class="logo-text">LuckyBet</span>
+                    <span class="logo-icon">💊</span>
+                    <span class="logo-text">Northside Pharmacy</span>
                 </div>
                 <ul class="nav-menu">
                     <li><a href="#home" class="nav-link active">Home</a></li>
-                    <li><a href="#games" class="nav-link">Games</a></li>
-                    <li><a href="#live-casino" class="nav-link">Live Casino</a></li>
-                    <li><a href="#promotions" class="nav-link">Promotions</a></li>
-                    <li><a href="#vip" class="nav-link">VIP</a></li>
+                    <li><a href="#products" class="nav-link">Products</a></li>
+                    <li><a href="#health-services" class="nav-link">Health Services</a></li>
+                    <li><a href="#offers" class="nav-link">Offers</a></li>
+                    <li><a href="#account" class="nav-link">Account</a></li>
                 </ul>
                 <div class="nav-actions">
                     <button class="btn btn-outline">Sign In</button>
-                    <button class="btn btn-primary">Join Now</button>
+                    <button class="btn btn-primary">Cart (0)</button>
                 </div>
                 <button class="mobile-menu-toggle" id="mobile-menu-toggle">
                     <span></span>
@@ -130,24 +159,24 @@
                 <div class="hero-overlay"></div>
             </div>
             <div class="hero-content">
-                <h1 class="hero-title">Welcome to LuckyBet Casino</h1>
-                <p class="hero-subtitle">Experience the thrill of premium online gaming</p>
+                <h1 class="hero-title">Welcome to Northside Pharmacy</h1>
+                <p class="hero-subtitle">Your trusted partner for health and wellness</p>
                 <div class="hero-cta">
-                    <button class="btn btn-hero btn-large">Play Now</button>
-                    <button class="btn btn-hero-outline btn-large">View Games</button>
+                    <button class="btn btn-hero btn-large">Shop Now</button>
+                    <button class="btn btn-hero-outline btn-large">View Products</button>
                 </div>
                 <div class="hero-features">
                     <div class="feature">
-                        <span class="feature-icon">🎁</span>
-                        <span>Welcome Bonus</span>
+                        <span class="feature-icon">🚚</span>
+                        <span>Free Delivery</span>
                     </div>
                     <div class="feature">
                         <span class="feature-icon">⚡</span>
-                        <span>Instant Withdrawals</span>
+                        <span>Same-Day Pickup</span>
                     </div>
                     <div class="feature">
                         <span class="feature-icon">🔒</span>
-                        <span>Secure & Licensed</span>
+                        <span>Licensed & Secure</span>
                     </div>
                 </div>
             </div>
@@ -158,253 +187,253 @@
             <div class="container">
                 <div class="stats-grid">
                     <div class="stat-card">
-                        <div class="stat-icon">💰</div>
-                        <div class="stat-value">$12.5M</div>
-                        <div class="stat-label">Total Jackpots Won</div>
+                        <div class="stat-icon">💊</div>
+                        <div class="stat-value">5,000+</div>
+                        <div class="stat-label">Products Available</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon">👥</div>
-                        <div class="stat-value">250K+</div>
-                        <div class="stat-label">Active Players</div>
+                        <div class="stat-value">50K+</div>
+                        <div class="stat-label">Happy Customers</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-icon">🎮</div>
-                        <div class="stat-value">2,500+</div>
-                        <div class="stat-label">Games Available</div>
+                        <div class="stat-icon">⭐</div>
+                        <div class="stat-value">4.9/5</div>
+                        <div class="stat-label">Customer Rating</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon">⚡</div>
                         <div class="stat-value">24/7</div>
-                        <div class="stat-label">Customer Support</div>
+                        <div class="stat-label">Pharmacy Support</div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Games Section -->
-        <section id="games" class="games-section">
+        <!-- Products Section -->
+        <section id="products" class="games-section">
             <div class="container">
                 <div class="section-header">
-                    <h2 class="section-title">Popular Games</h2>
+                    <h2 class="section-title">Popular Products</h2>
                     <div class="game-filters">
                         <button class="filter-btn active" data-filter="all">All</button>
-                        <button class="filter-btn" data-filter="slots">Slots</button>
-                        <button class="filter-btn" data-filter="table">Table Games</button>
-                        <button class="filter-btn" data-filter="jackpot">Jackpots</button>
+                        <button class="filter-btn" data-filter="cold-flu">Cold & Flu</button>
+                        <button class="filter-btn" data-filter="pain-relief">Pain Relief</button>
+                        <button class="filter-btn" data-filter="vitamins">Vitamins</button>
                     </div>
                 </div>
                 <div class="games-grid">
-                    <div class="game-card" data-category="slots jackpot">
+                    <div class="game-card" data-category="cold-flu">
                         <div class="game-image" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                            <span class="game-icon">🎰</span>
-                            <div class="game-badge">Jackpot</div>
+                            <span class="game-icon">💊</span>
+                            <div class="game-badge">18+</div>
                         </div>
                         <div class="game-info">
-                            <h3>Mega Fortune</h3>
-                            <p>Progressive Jackpot • $2.3M</p>
+                            <h3>Cold & Flu Relief</h3>
+                            <p>Decongestant • 24 Tablets</p>
                             <div class="game-rating">
                                 <span class="stars">★★★★★</span>
                                 <span class="rating-text">4.9</span>
                             </div>
-                            <button class="btn btn-game">Play Now</button>
+                            <button class="btn btn-game">Add to Cart</button>
                         </div>
                     </div>
-                    <div class="game-card" data-category="table">
+                    <div class="game-card" data-category="pain-relief">
                         <div class="game-image" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
-                            <span class="game-icon">🃏</span>
+                            <span class="game-icon">💊</span>
                         </div>
                         <div class="game-info">
-                            <h3>Blackjack Pro</h3>
-                            <p>Classic Card Game</p>
+                            <h3>Ibuprofen 400mg</h3>
+                            <p>Pain Relief • 30 Capsules</p>
                             <div class="game-rating">
                                 <span class="stars">★★★★☆</span>
                                 <span class="rating-text">4.7</span>
                             </div>
-                            <button class="btn btn-game">Play Now</button>
+                            <button class="btn btn-game">Add to Cart</button>
                         </div>
                     </div>
-                    <div class="game-card" data-category="table">
+                    <div class="game-card" data-category="cold-flu">
                         <div class="game-image" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
-                            <span class="game-icon">🎲</span>
+                            <span class="game-icon">💊</span>
                         </div>
                         <div class="game-info">
-                            <h3>Roulette Royale</h3>
-                            <p>European Style</p>
+                            <h3>Nasal Decongestant</h3>
+                            <p>12 Hour Relief • 20 Tablets</p>
                             <div class="game-rating">
                                 <span class="stars">★★★★★</span>
                                 <span class="rating-text">4.8</span>
                             </div>
-                            <button class="btn btn-game">Play Now</button>
+                            <button class="btn btn-game">Add to Cart</button>
                         </div>
                     </div>
-                    <div class="game-card" data-category="table">
+                    <div class="game-card" data-category="vitamins">
                         <div class="game-image" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
-                            <span class="game-icon">🎴</span>
+                            <span class="game-icon">💊</span>
                         </div>
                         <div class="game-info">
-                            <h3>Poker Masters</h3>
-                            <p>Texas Hold'em</p>
+                            <h3>Vitamin D3</h3>
+                            <p>1000 IU • 90 Softgels</p>
                             <div class="game-rating">
                                 <span class="stars">★★★★☆</span>
                                 <span class="rating-text">4.6</span>
                             </div>
-                            <button class="btn btn-game">Play Now</button>
+                            <button class="btn btn-game">Add to Cart</button>
                         </div>
                     </div>
-                    <div class="game-card" data-category="slots">
+                    <div class="game-card" data-category="pain-relief">
                         <div class="game-image" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
-                            <span class="game-icon">🎰</span>
+                            <span class="game-icon">💊</span>
                         </div>
                         <div class="game-info">
-                            <h3>Starburst</h3>
-                            <p>Classic Slots</p>
+                            <h3>Acetaminophen</h3>
+                            <p>500mg • 100 Tablets</p>
                             <div class="game-rating">
                                 <span class="stars">★★★★★</span>
                                 <span class="rating-text">4.9</span>
                             </div>
-                            <button class="btn btn-game">Play Now</button>
+                            <button class="btn btn-game">Add to Cart</button>
                         </div>
                     </div>
-                    <div class="game-card" data-category="slots jackpot">
+                    <div class="game-card" data-category="cold-flu">
                         <div class="game-image" style="background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);">
-                            <span class="game-icon">🎰</span>
-                            <div class="game-badge">Jackpot</div>
+                            <span class="game-icon">💊</span>
+                            <div class="game-badge">18+</div>
                         </div>
                         <div class="game-info">
-                            <h3>Mega Moolah</h3>
-                            <p>Progressive Jackpot • $1.8M</p>
+                            <h3>Day & Night Cold</h3>
+                            <p>Combo Pack • 20 Tablets</p>
                             <div class="game-rating">
                                 <span class="stars">★★★★★</span>
                                 <span class="rating-text">4.8</span>
                             </div>
-                            <button class="btn btn-game">Play Now</button>
+                            <button class="btn btn-game">Add to Cart</button>
                         </div>
                     </div>
-                    <div class="game-card" data-category="table">
+                    <div class="game-card" data-category="vitamins">
                         <div class="game-image" style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);">
-                            <span class="game-icon">🎲</span>
+                            <span class="game-icon">💊</span>
                         </div>
                         <div class="game-info">
-                            <h3>Baccarat Elite</h3>
-                            <p>Premium Table Game</p>
+                            <h3>Multivitamin Complex</h3>
+                            <p>Daily Support • 60 Tablets</p>
                             <div class="game-rating">
                                 <span class="stars">★★★★☆</span>
                                 <span class="rating-text">4.7</span>
                             </div>
-                            <button class="btn btn-game">Play Now</button>
+                            <button class="btn btn-game">Add to Cart</button>
                         </div>
                     </div>
-                    <div class="game-card" data-category="slots">
+                    <div class="game-card" data-category="pain-relief">
                         <div class="game-image" style="background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);">
-                            <span class="game-icon">🎰</span>
+                            <span class="game-icon">💊</span>
                         </div>
                         <div class="game-info">
-                            <h3>Book of Dead</h3>
-                            <p>Adventure Slots</p>
+                            <h3>Migraine Relief</h3>
+                            <p>Fast Acting • 12 Tablets</p>
                             <div class="game-rating">
                                 <span class="stars">★★★★★</span>
                                 <span class="rating-text">4.9</span>
                             </div>
-                            <button class="btn btn-game">Play Now</button>
+                            <button class="btn btn-game">Add to Cart</button>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Live Casino Section -->
-        <section id="live-casino" class="live-casino-section">
+        <!-- Health Services Section -->
+        <section id="health-services" class="live-casino-section">
             <div class="container">
                 <div class="section-header">
-                    <h2 class="section-title">Live Casino</h2>
-                    <p class="section-subtitle">Experience the thrill of real-time gaming with professional dealers</p>
+                    <h2 class="section-title">Health Services</h2>
+                    <p class="section-subtitle">Professional healthcare services available at our pharmacy</p>
                 </div>
                 <div class="live-casino-grid">
                     <div class="live-casino-card featured">
-                        <div class="live-badge">LIVE</div>
-                        <div class="live-viewers">👁 1,234 watching</div>
+                        <div class="live-badge">NEW</div>
+                        <div class="live-viewers">👨‍⚕️ Available Today</div>
                         <div class="live-casino-image" style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
-                            <span class="live-icon">🎥</span>
+                            <span class="live-icon">💉</span>
                         </div>
                         <div class="live-casino-info">
-                            <h3>Live Blackjack VIP</h3>
-                            <p>Professional dealer • High stakes</p>
+                            <h3>Flu Vaccination</h3>
+                            <p>Seasonal flu shot • Walk-in available</p>
                             <div class="live-stats">
-                                <span>Min: $50</span>
-                                <span>Max: $10,000</span>
+                                <span>Age: 18+</span>
+                                <span>Duration: 15 min</span>
                             </div>
-                            <button class="btn btn-game">Join Table</button>
+                            <button class="btn btn-game">Book Appointment</button>
                         </div>
                     </div>
                     <div class="live-casino-card">
-                        <div class="live-badge">LIVE</div>
-                        <div class="live-viewers">👁 856 watching</div>
+                        <div class="live-badge">AVAILABLE</div>
+                        <div class="live-viewers">👩‍⚕️ Mon-Fri 9-5</div>
                         <div class="live-casino-image" style="background: linear-gradient(135deg, #c94b4b 0%, #4b134f 100%);">
-                            <span class="live-icon">🎥</span>
+                            <span class="live-icon">🩺</span>
                         </div>
                         <div class="live-casino-info">
-                            <h3>Live Roulette</h3>
-                            <p>European Roulette</p>
+                            <h3>Health Consultation</h3>
+                            <p>Pharmacy consultation service</p>
                             <div class="live-stats">
-                                <span>Min: $10</span>
-                                <span>Max: $5,000</span>
+                                <span>Free</span>
+                                <span>30 min session</span>
                             </div>
-                            <button class="btn btn-game">Join Table</button>
+                            <button class="btn btn-game">Schedule Now</button>
                         </div>
                     </div>
                     <div class="live-casino-card">
-                        <div class="live-badge">LIVE</div>
-                        <div class="live-viewers">👁 642 watching</div>
+                        <div class="live-badge">24/7</div>
+                        <div class="live-viewers">📞 Emergency Line</div>
                         <div class="live-casino-image" style="background: linear-gradient(135deg, #0f2027 0%, #203a43 100%);">
-                            <span class="live-icon">🎥</span>
+                            <span class="live-icon">🚑</span>
                         </div>
                         <div class="live-casino-info">
-                            <h3>Live Baccarat</h3>
-                            <p>Punto Banco</p>
+                            <h3>Prescription Service</h3>
+                            <p>Fast prescription fulfillment</p>
                             <div class="live-stats">
-                                <span>Min: $25</span>
-                                <span>Max: $2,500</span>
+                                <span>Same Day</span>
+                                <span>Insurance Accepted</span>
                             </div>
-                            <button class="btn btn-game">Join Table</button>
+                            <button class="btn btn-game">Learn More</button>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Promotions Section -->
-        <section id="promotions" class="promotions-section">
+        <!-- Offers Section -->
+        <section id="offers" class="promotions-section">
             <div class="container">
-                <h2 class="section-title">Exclusive Promotions</h2>
+                <h2 class="section-title">Special Offers</h2>
                 <div class="promotions-grid">
                     <div class="promo-card promo-featured">
                         <div class="promo-badge">New</div>
-                        <h3>Welcome Bonus</h3>
-                        <p class="promo-amount">100% up to $500</p>
-                        <p class="promo-desc">Plus 100 free spins on your first deposit</p>
-                        <div class="promo-terms">Min. deposit $20 • 35x wagering</div>
-                        <button class="btn btn-promo">Claim Now</button>
+                        <h3>New Customer Offer</h3>
+                        <p class="promo-amount">15% Off First Order</p>
+                        <p class="promo-desc">Get 15% off your first purchase over $30</p>
+                        <div class="promo-terms">Min. order $30 • Code: WELCOME15</div>
+                        <button class="btn btn-promo">Shop Now</button>
                     </div>
                     <div class="promo-card">
-                        <h3>Weekly Reload</h3>
-                        <p class="promo-amount">50% up to $200</p>
-                        <p class="promo-desc">Every Monday</p>
-                        <div class="promo-terms">Valid every Monday</div>
-                        <button class="btn btn-promo">Learn More</button>
+                        <h3>Weekly Special</h3>
+                        <p class="promo-amount">Buy 2 Get 1 Free</p>
+                        <p class="promo-desc">On selected vitamins</p>
+                        <div class="promo-terms">Valid this week only</div>
+                        <button class="btn btn-promo">View Products</button>
                     </div>
                     <div class="promo-card">
-                        <h3>Free Spins Friday</h3>
-                        <p class="promo-amount">50 Free Spins</p>
-                        <p class="promo-desc">Every Friday</p>
-                        <div class="promo-terms">No deposit required</div>
-                        <button class="btn btn-promo">Claim Now</button>
+                        <h3>Free Delivery</h3>
+                        <p class="promo-amount">On Orders $50+</p>
+                        <p class="promo-desc">Standard shipping included</p>
+                        <div class="promo-terms">No code needed</div>
+                        <button class="btn btn-promo">Shop Now</button>
                     </div>
                     <div class="promo-card">
-                        <h3>VIP Program</h3>
-                        <p class="promo-amount">Exclusive Rewards</p>
-                        <p class="promo-desc">Join our VIP club</p>
-                        <div class="promo-terms">Tier-based benefits</div>
-                        <button class="btn btn-promo">Join VIP</button>
+                        <h3>Loyalty Program</h3>
+                        <p class="promo-amount">Earn Points</p>
+                        <p class="promo-desc">Get rewards on every purchase</p>
+                        <div class="promo-terms">Join for free</div>
+                        <button class="btn btn-promo">Sign Up</button>
                     </div>
                 </div>
             </div>
@@ -422,15 +451,15 @@
                     </div>
                     <div class="payment-method">
                         <div class="payment-icon">🏦</div>
-                        <span>Bank Transfer</span>
+                        <span>Debit Cards</span>
                     </div>
                     <div class="payment-method">
                         <div class="payment-icon">📱</div>
-                        <span>E-Wallets</span>
+                        <span>Apple Pay</span>
                     </div>
                     <div class="payment-method">
-                        <div class="payment-icon">₿</div>
-                        <span>Cryptocurrency</span>
+                        <div class="payment-icon">💊</div>
+                        <span>Insurance</span>
                     </div>
                     <div class="payment-method">
                         <div class="payment-icon">🔐</div>
@@ -449,15 +478,15 @@
             <div class="container">
                 <div class="footer-content">
                     <div class="footer-section">
-                        <h4>LuckyBet Casino</h4>
-                        <p>Licensed and regulated online casino. Play responsibly.</p>
+                        <h4>Northside Pharmacy</h4>
+                        <p>Licensed pharmacy providing quality healthcare products and services.</p>
                     </div>
                     <div class="footer-section">
                         <h4>Support</h4>
                         <ul>
                             <li><a href="#">Help Center</a></li>
                             <li><a href="#">Contact Us</a></li>
-                            <li><a href="#">Responsible Gaming</a></li>
+                            <li><a href="#">Medication Safety</a></li>
                         </ul>
                     </div>
                     <div class="footer-section">
@@ -470,22 +499,22 @@
                     </div>
                     <div class="footer-section">
                         <h4>Licensing</h4>
-                        <p>Licensed by the Malta Gaming Authority</p>
-                        <p>License: MGA/B2C/123/2010</p>
+                        <p>Licensed Pharmacy</p>
+                        <p>License: PH-2024-12345</p>
                         <div class="footer-badges">
                             <span class="badge">18+</span>
-                            <span class="badge">Responsible Gaming</span>
+                            <span class="badge">Age-Restricted Products</span>
                         </div>
                     </div>
                 </div>
                 <div class="footer-bottom">
-                    <p>&copy; 2026 LuckyBet Casino. All rights reserved. 18+ Only. BeGambleAware.org</p>
+                    <p>&copy; 2026 Northside Pharmacy (Demo). All rights reserved. 18+ Only. Consult your healthcare provider before use.</p>
                     <div class="footer-links">
-                        <a href="#">Responsible Gaming</a>
+                        <a href="#">Medication Safety</a>
                         <span>•</span>
-                        <a href="#">Self-Exclusion</a>
+                        <a href="#">Age-Restricted Products Policy</a>
                         <span>•</span>
-                        <a href="#">Deposit Limits</a>
+                        <a href="#">Prescription Information</a>
                     </div>
                 </div>
             </div>
