@@ -10,33 +10,33 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'src')));
 
 // Klarna API Configuration (from environment variables)
-// According to official docs: https://docs.klarna.com/conversion-boosters/sign-in-with-klarna/integrate-sign-in-with-klarna/klarna-identity-api/
-// Authentication: Basic Auth with API key (authorization: klarna_api_key)
+// Docs: https://docs.klarna.com/conversion-boosters/sign-in-with-klarna/integrate-sign-in-with-klarna/klarna-identity-api/
+// No SDK — we call the Identity REST API directly with HTTP Basic Auth (API key).
 const KLARNA_CONFIG = {
-  username: process.env.KLARNA_USER_NAME, // Username for Basic Auth
-  apiKey: process.env.KLARNA_PASSWORD, // API key for Basic Auth
+  username: process.env.KLARNA_USER_NAME,
+  apiKey: process.env.KLARNA_PASSWORD,
   apiUrl: process.env.KLARNA_BASE_URL || 'https://api-global.test.klarna.com',
   accountId: process.env.KLARNA_ACCOUNT_ID,
   returnUrl: process.env.KLARNA_RETURN_URL || (process.env.VERCEL_URL 
     ? `https://${process.env.VERCEL_URL}` 
     : 'https://siwk-kn-demo.vercel.app'),
-  // Customer region header (required for some Klarna APIs, e.g. Identity)
   customerRegion: process.env.KLARNA_CUSTOMER_REGION || 'krn:partner:eu1:region'
 };
 
-// Get Basic Auth header for Klarna API
-function getKlarnaAuthHeader() {
-  if (!KLARNA_CONFIG.username || !KLARNA_CONFIG.apiKey) {
+// HTTP Basic Auth: Authorization header = "Basic " + base64(username + ":" + password).
+// Identity API expects this (klarna_api_key); we do not use OAuth or any SDK.
+function buildBasicAuthHeader(username, password) {
+  if (!username || !password) {
     throw new Error('KLARNA_USER_NAME and KLARNA_PASSWORD are required');
   }
-  const credentials = Buffer.from(`${KLARNA_CONFIG.username}:${KLARNA_CONFIG.apiKey}`).toString('base64');
-  return `Basic ${credentials}`;
+  const encoded = Buffer.from(`${username}:${password}`).toString('base64');
+  return `Basic ${encoded}`;
 }
 
-// Common headers for all Klarna API requests (including X-Klarna-Customer-Region)
-function getKlarnaRequestHeaders(extra = {}) {
+// Headers we send on every request to Klarna Identity API (POST/GET identity/requests).
+function klarnaApiHeaders(extra = {}) {
   return {
-    'Authorization': getKlarnaAuthHeader(),
+    'Authorization': buildBasicAuthHeader(KLARNA_CONFIG.username, KLARNA_CONFIG.apiKey),
     'Content-Type': 'application/json',
     'X-Klarna-Customer-Region': KLARNA_CONFIG.customerRegion,
     ...extra
@@ -111,7 +111,7 @@ app.post('/api/klarna/identity/request', async (req, res) => {
     // Make API call to create identity request
     const response = await fetch(apiUrl, {
       method: 'POST',
-      headers: getKlarnaRequestHeaders({
+      headers: klarnaApiHeaders({
         'Klarna-Idempotency-Key': idempotencyKey,
         'Partner-Correlation-Id': `partner-${Date.now()}`
       }),
@@ -206,7 +206,7 @@ app.get('/api/klarna/identity/request/:identityRequestId', async (req, res) => {
       `${KLARNA_CONFIG.apiUrl}/v2/accounts/${accountId}/identity/requests/${identityRequestId}`,
       {
         method: 'GET',
-        headers: getKlarnaRequestHeaders()
+        headers: klarnaApiHeaders()
       }
     );
 
