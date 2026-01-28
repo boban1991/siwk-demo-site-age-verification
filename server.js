@@ -98,6 +98,7 @@ app.post('/api/klarna/identity/request', async (req, res) => {
 
     const apiUrl = `${KLARNA_CONFIG.apiUrl}/v2/accounts/${accountId}/identity/requests`;
     console.log('Making request to:', apiUrl);
+    console.log('Return URL being sent to Klarna:', identityRequest.customer_interaction_config.return_url);
     console.log('Request body:', JSON.stringify(identityRequest, null, 2));
 
     console.log('Using Basic Auth with API key and X-Klarna-Customer-Region:', KLARNA_CONFIG.customerRegion);
