@@ -92,7 +92,7 @@ app.post('/api/klarna/identity/request', async (req, res) => {
       },
       customer_interaction_config: {
         method: 'HANDOVER',
-        return_url: `${KLARNA_CONFIG.returnUrl}/api/klarna/callback?identity_request_id={klarna.identity_request.id}&state={klarna.identity_request.state}`
+        return_url: `${KLARNA_CONFIG.returnUrl.replace(/\/$/, '')}/api/klarna/callback?identity_request_id={klarna.identity_request.id}&state={klarna.identity_request.state}`
       }
     };
 
@@ -230,8 +230,9 @@ app.all('/api/klarna/callback', async (req, res) => {
     console.log('Method:', req.method);
     console.log('Request path:', req.path);
     console.log('Request URL:', req.url);
+    console.log('Request originalUrl:', req.originalUrl);
     console.log('Request query:', req.query);
-    console.log('Request headers:', req.headers);
+    console.log('Request headers:', JSON.stringify(req.headers, null, 2));
     
     const { identity_request_id, state } = req.query;
     
