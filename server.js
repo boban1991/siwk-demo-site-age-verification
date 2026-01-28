@@ -20,7 +20,7 @@ const KLARNA_CONFIG = {
   apiUrl: process.env.KLARNA_BASE_URL || 'https://api-global.test.klarna.com',
   accountId: process.env.KLARNA_ACCOUNT_ID,
   returnUrl: process.env.KLARNA_RETURN_URL || (process.env.VERCEL_URL 
-    ? `https://${process.env.VERCEL_URL}` 
+    ? (process.env.VERCEL_URL.startsWith('http') ? process.env.VERCEL_URL : `https://${process.env.VERCEL_URL}`)
     : 'https://siwk-kn-demo.vercel.app'),
   customerRegion: process.env.KLARNA_CUSTOMER_REGION || 'krn:partner:eu1:region'
 };
@@ -48,14 +48,6 @@ function klarnaApiHeaders(extra = {}) {
 // Route for the main page
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'src', 'index.html'));
-});
-
-// Explicitly handle callback route early to ensure it's matched
-// This helps with Vercel routing issues
-app.get('/api/klarna/callback', async (req, res, next) => {
-  // This will be handled by the app.all route below, but having it here
-  // ensures Express matches it before static files
-  next();
 });
 
 // API endpoint to get Klarna configuration (public config only)
