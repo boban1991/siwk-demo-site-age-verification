@@ -7,7 +7,9 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'src')));
+
+// API routes must be defined BEFORE static file serving
+// This ensures /api/* routes are handled by Express, not static files
 
 // Klarna API Configuration (from environment variables)
 // Docs: https://docs.klarna.com/conversion-boosters/sign-in-with-klarna/integrate-sign-in-with-klarna/klarna-identity-api/
@@ -43,7 +45,11 @@ function klarnaApiHeaders(extra = {}) {
   };
 }
 
-// Route for the main page
+// Serve static files AFTER API routes are defined
+// This ensures /api/* routes work correctly
+app.use(express.static(path.join(__dirname, 'src')));
+
+// Route for the main page (fallback for SPA)
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'src', 'index.html'));
 });
