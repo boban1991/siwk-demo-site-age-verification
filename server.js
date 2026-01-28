@@ -222,6 +222,16 @@ app.get('/api/test', (req, res) => {
   res.json({ message: 'API routes are working!', path: req.path, url: req.url });
 });
 
+// Debug route to test callback path
+app.get('/api/klarna/callback/test', (req, res) => {
+  res.json({ 
+    message: 'Callback test route works!', 
+    path: req.path, 
+    url: req.url,
+    query: req.query 
+  });
+});
+
 // API endpoint for Klarna callback (after user completes identity flow)
 // Handle both GET and any method to be safe
 app.all('/api/klarna/callback', async (req, res) => {
@@ -262,6 +272,18 @@ app.all('/api/klarna/callback', async (req, res) => {
     console.error('Error stack:', error.stack);
     res.redirect('/?error=callback_failed');
   }
+});
+
+// Catch-all for unmatched API routes (for debugging)
+app.use('/api', (req, res, next) => {
+  console.log('Unmatched API route:', req.method, req.path, req.url);
+  res.status(404).json({ 
+    error: 'API route not found', 
+    method: req.method, 
+    path: req.path, 
+    url: req.url,
+    availableRoutes: ['/api/test', '/api/klarna/config', '/api/klarna/identity/request', '/api/klarna/callback']
+  });
 });
 
 // Serve static files LAST - after ALL API routes are defined
