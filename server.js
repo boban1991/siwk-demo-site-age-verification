@@ -259,6 +259,15 @@ app.get('/api/klarna/callback/test', (req, res) => {
   });
 });
 
+// Test nested API path
+app.get('/api/klarna/test', (req, res) => {
+  res.json({ 
+    message: 'Nested API path works!', 
+    path: req.path, 
+    url: req.url 
+  });
+});
+
 // API endpoint for Klarna callback (after user completes identity flow)
 // Handle both GET and any method to be safe
 app.all('/api/klarna/callback', async (req, res) => {
