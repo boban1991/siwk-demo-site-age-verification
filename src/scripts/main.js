@@ -115,6 +115,28 @@ function updateCartUI() {
 window.updateCartQuantity = updateCartQuantity;
 window.removeFromCart = removeFromCart;
 
+// Checkout function - must be defined before DOMContentLoaded
+function proceedToCheckout() {
+    try {
+        console.log('proceedToCheckout called');
+        // This would normally redirect to a checkout page
+        // For demo, we'll show a success message
+        alert('Checkout would proceed here. This is a demo - no actual payment will be processed.');
+        // Clear cart after checkout
+        saveCart([]);
+        updateCartUI();
+        const cartModal = document.getElementById('cart-modal');
+        if (cartModal) cartModal.classList.add('hidden');
+        sessionStorage.removeItem('checkout_pending');
+    } catch (error) {
+        console.error('Error in proceedToCheckout:', error);
+        alert('An error occurred during checkout. Please try again.');
+    }
+}
+
+// Make proceedToCheckout globally accessible
+window.proceedToCheckout = proceedToCheckout;
+
 // Check if user is already verified
 function checkVerificationStatus() {
     const verified = localStorage.getItem(VERIFICATION_KEY) === 'true';
@@ -501,13 +523,18 @@ function displayCustomerData(identityData) {
     // Scroll to top of success screen
     successScreen.scrollTo({ top: 0, behavior: 'smooth' });
     
-    // If checkout was pending, proceed after verification
+    // If checkout was pending, update button text and proceed after verification
     if (sessionStorage.getItem('checkout_pending') === 'true') {
-        // Wait a moment for user to see success, then proceed
+        // Wait a moment for user to see success, then update button
         setTimeout(() => {
             const continueBtn = document.getElementById('continue-btn');
             if (continueBtn) {
-                continueBtn.textContent = 'Continue to Checkout';
+                const span = continueBtn.querySelector('span');
+                if (span) {
+                    span.textContent = 'Continue to Checkout';
+                } else {
+                    continueBtn.innerHTML = '<span>Continue to Checkout</span>';
+                }
             }
         }, 500);
     }
@@ -566,7 +593,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (successScreen) successScreen.classList.add('hidden');
             
             // If checkout was pending, proceed to checkout
-            if (sessionStorage.getItem('checkout_pending') === 'true') {
+            const checkoutPending = sessionStorage.getItem('checkout_pending') === 'true';
+            console.log('Continue button clicked, checkout pending:', checkoutPending);
+            
+            if (checkoutPending) {
+                console.log('Proceeding to checkout from success screen');
                 proceedToCheckout();
             } else {
                 showMainContent();
@@ -891,17 +922,28 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Checkout button - trigger age verification if needed
     if (checkoutBtn) {
-        checkoutBtn.addEventListener('click', () => {
+        checkoutBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('Checkout button clicked');
+            
             const cart = getCart();
+            console.log('Cart:', cart);
+            
             if (cart.length === 0) {
                 alert('Your cart is empty');
                 return;
             }
             
             // Check if cart has age-restricted products
-            if (hasAgeRestrictedProducts()) {
+            const hasAgeRestricted = hasAgeRestrictedProducts();
+            console.log('Has age-restricted products:', hasAgeRestricted);
+            
+            if (hasAgeRestricted) {
                 // Check if user is already verified
-                if (!checkVerificationStatus()) {
+                const isVerified = checkVerificationStatus();
+                console.log('Is verified:', isVerified);
+                
+                if (!isVerified) {
                     // Show age verification modal
                     if (cartModal) cartModal.classList.add('hidden');
                     showAgeVerification();
@@ -909,30 +951,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     sessionStorage.setItem('checkout_pending', 'true');
                 } else {
                     // Already verified, proceed to checkout
+                    console.log('Proceeding to checkout (already verified)');
                     proceedToCheckout();
                 }
             } else {
                 // No age-restricted products, proceed directly to checkout
+                console.log('Proceeding to checkout (no age-restricted products)');
                 proceedToCheckout();
             }
         });
+    } else {
+        console.error('Checkout button not found!');
     }
     
     // Initialize cart UI
     updateCartUI();
 });
-
-function proceedToCheckout() {
-    // This would normally redirect to a checkout page
-    // For demo, we'll show a success message
-    alert('Checkout would proceed here. This is a demo - no actual payment will be processed.');
-    // Clear cart after checkout
-    saveCart([]);
-    updateCartUI();
-    const cartModal = document.getElementById('cart-modal');
-    if (cartModal) cartModal.classList.add('hidden');
-    sessionStorage.removeItem('checkout_pending');
-}
 
 // Add spinner animation CSS
 const style = document.createElement('style');
