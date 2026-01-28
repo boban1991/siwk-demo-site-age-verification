@@ -227,18 +227,26 @@ app.get('/api/test', (req, res) => {
 });
 
 // API endpoint for Klarna callback (after user completes identity flow)
-app.get('/api/klarna/callback', async (req, res) => {
+// Handle both GET and any method to be safe
+app.all('/api/klarna/callback', async (req, res) => {
   try {
     console.log('=== CALLBACK ROUTE HIT ===');
+    console.log('Method:', req.method);
     console.log('Request path:', req.path);
     console.log('Request URL:', req.url);
     console.log('Request query:', req.query);
+    console.log('Request headers:', req.headers);
     
     const { identity_request_id, state } = req.query;
     
     if (!identity_request_id) {
       console.error('Missing identity_request_id in callback');
-      return res.status(400).json({ error: 'Missing identity_request_id' });
+      // Return JSON error instead of redirect for debugging
+      return res.status(400).json({ 
+        error: 'Missing identity_request_id',
+        receivedQuery: req.query,
+        receivedUrl: req.url
+      });
     }
 
     console.log('Klarna callback received:', { identity_request_id, state });
