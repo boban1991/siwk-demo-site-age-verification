@@ -137,6 +137,25 @@ function proceedToCheckout() {
 // Make proceedToCheckout globally accessible
 window.proceedToCheckout = proceedToCheckout;
 
+// Age verification UI functions - must be globally accessible
+function showAgeVerification() {
+    const ageModal = document.getElementById('age-verification-modal');
+    const mainContent = document.getElementById('main-content');
+    if (ageModal) ageModal.style.display = 'flex';
+    if (mainContent) mainContent.classList.add('hidden');
+}
+
+function showMainContent() {
+    const ageModal = document.getElementById('age-verification-modal');
+    const mainContent = document.getElementById('main-content');
+    if (ageModal) ageModal.style.display = 'none';
+    if (mainContent) mainContent.classList.remove('hidden');
+}
+
+// Make functions globally accessible
+window.showAgeVerification = showAgeVerification;
+window.showMainContent = showMainContent;
+
 // Check if user is already verified
 function checkVerificationStatus() {
     const verified = localStorage.getItem(VERIFICATION_KEY) === 'true';
@@ -638,15 +657,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    function showAgeVerification() {
-        ageModal.style.display = 'flex';
-        mainContent.classList.add('hidden');
-    }
-    
-    function showMainContent() {
-        ageModal.style.display = 'none';
-        mainContent.classList.remove('hidden');
-    }
+    // Functions are now defined globally above, but we can still use local references
+    // showAgeVerification and showMainContent are now global functions
     
     function calculateAge(birthDate) {
         const today = new Date();
