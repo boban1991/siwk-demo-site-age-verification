@@ -755,31 +755,40 @@ function displayCustomerData(identityData) {
         }
     }
     
-    // Date of Birth & Age - Important for pharmacy
-    if (customerProfile?.date_of_birth) {
-        const dob = customerProfile.date_of_birth.date_of_birth;
-        const age = dob ? calculateAgeFromDOB(dob) : null;
-        if (dob) {
-            const formattedDate = new Date(dob).toLocaleDateString('en-US', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-            });
-            html += `
-                <div class="data-item">
-                    <div class="data-item-icon">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M8 2V6M16 2V6M3 10H21M5 4H19C20.1046 4 21 4.89543 21 6V20C21 21.1046 20.1046 22 19 22H5C3.89543 22 3 21.1046 3 20V6C3 4.89543 3.89543 4 5 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                    </div>
-                    <div class="data-item-content">
-                        <div class="data-label">Date of Birth</div>
-                        <div class="data-value">${formattedDate}${age !== null ? ` <span class="age-badge">Age: ${age}</span>` : ''}</div>
-                    </div>
-                    ${(customerProfile.date_of_birth?.date_of_birth_verified || customerProfile.date_of_birth_verified) ? '<span class="verified-badge">✓ Verified</span>' : ''}
+    // Date of Birth & Age - Important for pharmacy - Check both nested and flat structures
+    let dob = null;
+    let dobVerified = false;
+    if (customerProfile?.date_of_birth?.date_of_birth) {
+        // Nested structure
+        dob = customerProfile.date_of_birth.date_of_birth;
+        dobVerified = customerProfile.date_of_birth.date_of_birth_verified || false;
+    } else if (customerProfile?.date_of_birth) {
+        // Flat structure (string)
+        dob = customerProfile.date_of_birth;
+        dobVerified = customerProfile.date_of_birth_verified || false;
+    }
+    
+    if (dob) {
+        const age = calculateAgeFromDOB(dob);
+        const formattedDate = new Date(dob).toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        });
+        html += `
+            <div class="data-item">
+                <div class="data-item-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8 2V6M16 2V6M3 10H21M5 4H19C20.1046 4 21 4.89543 21 6V20C21 21.1046 20.1046 22 19 22H5C3.89543 22 3 21.1046 3 20V6C3 4.89543 3.89543 4 5 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
                 </div>
-            `;
-        }
+                <div class="data-item-content">
+                    <div class="data-label">Date of Birth</div>
+                    <div class="data-value">${formattedDate}${age !== null ? ` <span class="age-badge">Age: ${age}</span>` : ''}</div>
+                </div>
+                ${dobVerified ? '<span class="verified-badge">✓ Verified</span>' : ''}
+            </div>
+        `;
     }
     
     // Email - Check both nested and flat structures
