@@ -2022,8 +2022,14 @@ body {
         align-self: flex-start;
     }
     
+    .success-info {
+        margin-bottom: 24px;
+        padding: 16px 18px;
+    }
+    
     .success-actions {
         flex-direction: column;
+        padding-top: 24px;
     }
     
     .success-actions .btn {
