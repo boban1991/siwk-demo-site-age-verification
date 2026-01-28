@@ -1,6 +1,7 @@
 // Age Verification State Management
 const VERIFICATION_KEY = 'age_verified';
 const VERIFICATION_TIMESTAMP_KEY = 'age_verified_timestamp';
+const CUSTOMER_PROFILE_KEY = 'klarna_customer_profile';
 const VERIFICATION_EXPIRY_HOURS = 24; // Verification expires after 24 hours
 
 // Cart Management
@@ -159,6 +160,20 @@ function proceedToCheckout() {
         if (checkoutSubtotal) checkoutSubtotal.textContent = `$${subtotal.toFixed(2)}`;
         if (checkoutTotal) checkoutTotal.textContent = `$${subtotal.toFixed(2)}`;
         
+        // Get and display customer profile data if available
+        const customerProfile = getStoredCustomerProfile();
+        const customerDataSection = document.getElementById('checkout-customer-data');
+        const customerProfileData = document.getElementById('checkout-profile-data');
+        
+        if (customerDataSection && customerProfileData) {
+            if (customerProfile) {
+                customerProfileData.innerHTML = formatCustomerProfileForCheckout(customerProfile);
+                customerDataSection.style.display = 'block';
+            } else {
+                customerDataSection.style.display = 'none';
+            }
+        }
+        
         // Show checkout screen
         checkoutScreen.classList.remove('hidden');
         
@@ -171,6 +186,86 @@ function proceedToCheckout() {
         console.error('Error in proceedToCheckout:', error);
         alert('An error occurred during checkout. Please try again.');
     }
+}
+
+// Format customer profile for checkout display
+function formatCustomerProfileForCheckout(customerProfile) {
+    if (!customerProfile) return '';
+    
+    let html = '<div class="checkout-profile-grid">';
+    
+    // Name
+    if (customerProfile.name) {
+        const fullName = `${customerProfile.name.given_name || ''} ${customerProfile.name.family_name || ''}`.trim();
+        if (fullName) {
+            html += `
+                <div class="checkout-profile-item">
+                    <div class="checkout-profile-label">Full Name</div>
+                    <div class="checkout-profile-value">${fullName} ${customerProfile.name.name_verified ? '<span class="verified-badge-small">✓ Verified</span>' : ''}</div>
+                </div>
+            `;
+        }
+    }
+    
+    // Email
+    if (customerProfile.email?.email) {
+        html += `
+            <div class="checkout-profile-item">
+                <div class="checkout-profile-label">Email</div>
+                <div class="checkout-profile-value">${customerProfile.email.email} ${customerProfile.email.email_verified ? '<span class="verified-badge-small">✓ Verified</span>' : ''}</div>
+            </div>
+        `;
+    }
+    
+    // Phone
+    if (customerProfile.phone?.phone) {
+        html += `
+            <div class="checkout-profile-item">
+                <div class="checkout-profile-label">Phone</div>
+                <div class="checkout-profile-value">${customerProfile.phone.phone} ${customerProfile.phone.phone_verified ? '<span class="verified-badge-small">✓ Verified</span>' : ''}</div>
+            </div>
+        `;
+    }
+    
+    // Date of Birth
+    if (customerProfile.date_of_birth?.date_of_birth) {
+        const dob = customerProfile.date_of_birth.date_of_birth;
+        const formattedDate = new Date(dob).toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        });
+        const age = calculateAgeFromDOB(dob);
+        html += `
+            <div class="checkout-profile-item">
+                <div class="checkout-profile-label">Date of Birth</div>
+                <div class="checkout-profile-value">${formattedDate} (Age: ${age}) ${customerProfile.date_of_birth.date_of_birth_verified ? '<span class="verified-badge-small">✓ Verified</span>' : ''}</div>
+            </div>
+        `;
+    }
+    
+    // Billing Address
+    if (customerProfile.billing_address) {
+        const addr = customerProfile.billing_address;
+        const addressParts = [
+            addr.street_address,
+            addr.street_address2,
+            `${addr.postal_code || ''} ${addr.city || ''}`.trim(),
+            `${addr.region || ''} ${addr.country || ''}`.trim()
+        ].filter(part => part && part.trim());
+        
+        if (addressParts.length > 0) {
+            html += `
+                <div class="checkout-profile-item checkout-profile-item-full">
+                    <div class="checkout-profile-label">Billing Address</div>
+                    <div class="checkout-profile-value">${addressParts.join('<br>')}</div>
+                </div>
+            `;
+        }
+    }
+    
+    html += '</div>';
+    return html;
 }
 
 // Make proceedToCheckout globally accessible
@@ -218,13 +313,28 @@ function checkVerificationStatus() {
 }
 
 // Set verification status
-function setVerificationStatus(verified) {
+function setVerificationStatus(verified, customerProfile = null) {
     if (verified) {
         localStorage.setItem(VERIFICATION_KEY, 'true');
         localStorage.setItem(VERIFICATION_TIMESTAMP_KEY, new Date().getTime().toString());
+        if (customerProfile) {
+            localStorage.setItem(CUSTOMER_PROFILE_KEY, JSON.stringify(customerProfile));
+        }
     } else {
         localStorage.removeItem(VERIFICATION_KEY);
         localStorage.removeItem(VERIFICATION_TIMESTAMP_KEY);
+        localStorage.removeItem(CUSTOMER_PROFILE_KEY);
+    }
+}
+
+// Get stored customer profile
+function getStoredCustomerProfile() {
+    try {
+        const profileJson = localStorage.getItem(CUSTOMER_PROFILE_KEY);
+        return profileJson ? JSON.parse(profileJson) : null;
+    } catch (e) {
+        console.error('Error parsing stored customer profile:', e);
+        return null;
     }
 }
 
@@ -710,6 +820,7 @@ document.addEventListener('DOMContentLoaded', () => {
         resetBtn.addEventListener('click', () => {
             localStorage.removeItem(VERIFICATION_KEY);
             localStorage.removeItem(VERIFICATION_TIMESTAMP_KEY);
+            localStorage.removeItem(CUSTOMER_PROFILE_KEY);
             const successScreen = document.getElementById('success-screen');
             if (successScreen) successScreen.classList.add('hidden');
             showAgeVerification();

@@ -1530,6 +1530,55 @@ body {
     border-top: 1px solid var(--border-color);
 }
 
+.checkout-profile-data {
+    background: var(--bg-darker);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 24px;
+}
+
+.checkout-profile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.checkout-profile-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.checkout-profile-item-full {
+    grid-column: 1 / -1;
+}
+
+.checkout-profile-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.checkout-profile-value {
+    font-size: 1rem;
+    color: var(--text-primary);
+    word-break: break-word;
+    line-height: 1.5;
+}
+
+.verified-badge-small {
+    display: inline-block;
+    background: var(--success-color);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 8px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-left: 8px;
+}
+
 /* Success Screen */
 .success-screen {
     position: fixed;
