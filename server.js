@@ -45,14 +45,14 @@ function klarnaApiHeaders(extra = {}) {
   };
 }
 
-// Serve static files AFTER API routes are defined
-// This ensures /api/* routes work correctly
-app.use(express.static(path.join(__dirname, 'src')));
-
-// Route for the main page (fallback for SPA)
+// Route for the main page (must be before static files)
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'src', 'index.html'));
 });
+
+// Serve static files AFTER all routes are defined
+// This ensures /api/* routes are handled by Express, not static files
+app.use(express.static(path.join(__dirname, 'src')));
 
 // API endpoint to get Klarna configuration (public config only)
 app.get('/api/klarna/config', (req, res) => {
