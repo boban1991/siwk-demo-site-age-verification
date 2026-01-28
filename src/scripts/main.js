@@ -241,45 +241,45 @@ function formatCustomerProfileForCheckout(customerProfile) {
     let html = '<div class="checkout-profile-grid">';
     let hasData = false;
     
-    // Name
-    if (customerProfile.name) {
-        const fullName = `${customerProfile.name.given_name || ''} ${customerProfile.name.family_name || ''}`.trim();
+    // Name - flat structure: given_name, family_name, name_verified at top level
+    if (customerProfile.given_name || customerProfile.family_name) {
+        const fullName = `${customerProfile.given_name || ''} ${customerProfile.family_name || ''}`.trim();
         if (fullName) {
             html += `
                 <div class="checkout-profile-item">
                     <div class="checkout-profile-label">Full Name</div>
-                    <div class="checkout-profile-value">${fullName} ${customerProfile.name.name_verified ? '<span class="verified-badge-small">✓ Verified</span>' : ''}</div>
+                    <div class="checkout-profile-value">${fullName} ${customerProfile.name_verified ? '<span class="verified-badge-small">✓ Verified</span>' : ''}</div>
                 </div>
             `;
             hasData = true;
         }
     }
     
-    // Email
-    if (customerProfile.email?.email) {
+    // Email - flat structure: email is a string at top level
+    if (customerProfile.email) {
         html += `
             <div class="checkout-profile-item">
                 <div class="checkout-profile-label">Email</div>
-                <div class="checkout-profile-value">${customerProfile.email.email} ${customerProfile.email.email_verified ? '<span class="verified-badge-small">✓ Verified</span>' : ''}</div>
+                <div class="checkout-profile-value">${customerProfile.email} ${customerProfile.email_verified ? '<span class="verified-badge-small">✓ Verified</span>' : ''}</div>
             </div>
         `;
         hasData = true;
     }
     
-    // Phone
-    if (customerProfile.phone?.phone) {
+    // Phone - flat structure: phone is a string at top level
+    if (customerProfile.phone) {
         html += `
             <div class="checkout-profile-item">
                 <div class="checkout-profile-label">Phone</div>
-                <div class="checkout-profile-value">${customerProfile.phone.phone} ${customerProfile.phone.phone_verified ? '<span class="verified-badge-small">✓ Verified</span>' : ''}</div>
+                <div class="checkout-profile-value">${customerProfile.phone} ${customerProfile.phone_verified ? '<span class="verified-badge-small">✓ Verified</span>' : ''}</div>
             </div>
         `;
         hasData = true;
     }
     
-    // Date of Birth
-    if (customerProfile.date_of_birth?.date_of_birth) {
-        const dob = customerProfile.date_of_birth.date_of_birth;
+    // Date of Birth - flat structure: date_of_birth is a string at top level
+    if (customerProfile.date_of_birth) {
+        const dob = customerProfile.date_of_birth;
         const formattedDate = new Date(dob).toLocaleDateString('en-US', { 
             year: 'numeric', 
             month: 'long', 
@@ -289,15 +289,15 @@ function formatCustomerProfileForCheckout(customerProfile) {
         html += `
             <div class="checkout-profile-item">
                 <div class="checkout-profile-label">Date of Birth</div>
-                <div class="checkout-profile-value">${formattedDate} (Age: ${age}) ${customerProfile.date_of_birth.date_of_birth_verified ? '<span class="verified-badge-small">✓ Verified</span>' : ''}</div>
+                <div class="checkout-profile-value">${formattedDate} (Age: ${age}) ${customerProfile.date_of_birth_verified ? '<span class="verified-badge-small">✓ Verified</span>' : ''}</div>
             </div>
         `;
         hasData = true;
     }
     
-    // Billing Address
-    if (customerProfile.billing_address) {
-        const addr = customerProfile.billing_address;
+    // Address - flat structure: address is an object (not billing_address)
+    if (customerProfile.address) {
+        const addr = customerProfile.address;
         const addressParts = [
             addr.street_address,
             addr.street_address2,
@@ -308,12 +308,23 @@ function formatCustomerProfileForCheckout(customerProfile) {
         if (addressParts.length > 0) {
             html += `
                 <div class="checkout-profile-item checkout-profile-item-full">
-                    <div class="checkout-profile-label">Billing Address</div>
+                    <div class="checkout-profile-label">Address</div>
                     <div class="checkout-profile-value">${addressParts.join('<br>')}</div>
                 </div>
             `;
             hasData = true;
         }
+    }
+    
+    // Customer ID
+    if (customerProfile.customer_id) {
+        html += `
+            <div class="checkout-profile-item">
+                <div class="checkout-profile-label">Customer ID</div>
+                <div class="checkout-profile-value" style="font-size: 0.85rem; word-break: break-all;">${customerProfile.customer_id}</div>
+            </div>
+        `;
+        hasData = true;
     }
     
     if (!hasData) {
@@ -715,9 +726,17 @@ function displayCustomerData(identityData) {
         return;
     }
     
-    // Name - Most prominent
-    if (customerProfile?.name) {
-        const fullName = `${customerProfile.name.given_name || ''} ${customerProfile.name.family_name || ''}`.trim();
+    // Name - Check both nested and flat structures
+    let fullName = '';
+    if (customerProfile?.name?.given_name || customerProfile?.name?.family_name) {
+        // Nested structure
+        fullName = `${customerProfile.name.given_name || ''} ${customerProfile.name.family_name || ''}`.trim();
+    } else if (customerProfile?.given_name || customerProfile?.family_name) {
+        // Flat structure
+        fullName = `${customerProfile.given_name || ''} ${customerProfile.family_name || ''}`.trim();
+    }
+    
+    if (fullName) {
         if (fullName) {
             html += `
                 <div class="data-item data-item-featured">
@@ -730,7 +749,7 @@ function displayCustomerData(identityData) {
                         <div class="data-label">Full Name</div>
                         <div class="data-value data-value-large">${fullName}</div>
                     </div>
-                    ${customerProfile.name.name_verified ? '<span class="verified-badge">✓ Verified</span>' : ''}
+                    ${(customerProfile.name?.name_verified || customerProfile.name_verified) ? '<span class="verified-badge">✓ Verified</span>' : ''}
                 </div>
             `;
         }
@@ -757,14 +776,17 @@ function displayCustomerData(identityData) {
                         <div class="data-label">Date of Birth</div>
                         <div class="data-value">${formattedDate}${age !== null ? ` <span class="age-badge">Age: ${age}</span>` : ''}</div>
                     </div>
-                    ${customerProfile.date_of_birth.date_of_birth_verified ? '<span class="verified-badge">✓ Verified</span>' : ''}
+                    ${(customerProfile.date_of_birth?.date_of_birth_verified || customerProfile.date_of_birth_verified) ? '<span class="verified-badge">✓ Verified</span>' : ''}
                 </div>
             `;
         }
     }
     
-    // Email
-    if (customerProfile?.email?.email) {
+    // Email - Check both nested and flat structures
+    const email = customerProfile?.email?.email || customerProfile?.email;
+    const emailVerified = customerProfile?.email?.email_verified || customerProfile?.email_verified;
+    
+    if (email) {
         html += `
             <div class="data-item">
                 <div class="data-item-icon">
@@ -774,15 +796,18 @@ function displayCustomerData(identityData) {
                 </div>
                 <div class="data-item-content">
                     <div class="data-label">Email Address</div>
-                    <div class="data-value">${customerProfile.email.email}</div>
+                    <div class="data-value">${email}</div>
                 </div>
-                ${customerProfile.email.email_verified ? '<span class="verified-badge">✓ Verified</span>' : ''}
+                ${emailVerified ? '<span class="verified-badge">✓ Verified</span>' : ''}
             </div>
         `;
     }
     
-    // Phone
-    if (customerProfile?.phone?.phone) {
+    // Phone - Check both nested and flat structures
+    const phone = customerProfile?.phone?.phone || customerProfile?.phone;
+    const phoneVerified = customerProfile?.phone?.phone_verified || customerProfile?.phone_verified;
+    
+    if (phone) {
         html += `
             <div class="data-item">
                 <div class="data-item-icon">
@@ -792,16 +817,17 @@ function displayCustomerData(identityData) {
                 </div>
                 <div class="data-item-content">
                     <div class="data-label">Phone Number</div>
-                    <div class="data-value">${customerProfile.phone.phone}</div>
+                    <div class="data-value">${phone}</div>
                 </div>
-                ${customerProfile.phone.phone_verified ? '<span class="verified-badge">✓ Verified</span>' : ''}
+                ${phoneVerified ? '<span class="verified-badge">✓ Verified</span>' : ''}
             </div>
         `;
     }
     
-    // Billing Address
-    if (customerProfile?.billing_address) {
-        const addr = customerProfile.billing_address;
+    // Address - Check both billing_address and address
+    const addr = customerProfile?.billing_address || customerProfile?.address;
+    
+    if (addr) {
         const addressParts = [
             addr.street_address,
             addr.street_address2,
