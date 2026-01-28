@@ -190,18 +190,26 @@ function proceedToCheckout() {
                 console.log('Generated profile HTML:', profileHTML);
                 console.log('Profile HTML length:', profileHTML.length);
                 
-                if (profileHTML && profileHTML.length > 0) {
+                if (profileHTML && profileHTML.length > 50) { // More than just the wrapper divs
                     customerProfileData.innerHTML = profileHTML;
                     customerDataSection.style.display = 'block';
                     console.log('✅ Customer profile section displayed with content');
                 } else {
-                    console.warn('⚠️ Profile HTML is empty, showing fallback message');
-                    customerProfileData.innerHTML = '<p style="color: var(--text-secondary); padding: 20px;">Customer profile data is available but could not be formatted. Check console for details.</p>';
+                    console.warn('⚠️ Profile HTML is empty or too short, showing raw data as fallback');
+                    // Show raw data as fallback
+                    const rawDataHTML = `
+                        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 10px 0;">
+                            <h3 style="margin-top: 0; color: var(--text-primary);">Customer Profile Data</h3>
+                            <pre style="background: white; padding: 15px; border-radius: 4px; overflow-x: auto; font-size: 12px; color: var(--text-primary);">${JSON.stringify(customerProfile, null, 2)}</pre>
+                        </div>
+                    `;
+                    customerProfileData.innerHTML = rawDataHTML;
                     customerDataSection.style.display = 'block';
                 }
             } else {
                 console.log('No valid customer profile found, hiding section');
                 console.log('Profile value:', customerProfile);
+                console.log('Profile type:', typeof customerProfile);
                 customerDataSection.style.display = 'none';
             }
         } else {
@@ -309,11 +317,16 @@ function formatCustomerProfileForCheckout(customerProfile) {
     }
     
     if (!hasData) {
-        html += '<p style="color: var(--text-secondary);">No customer profile data available to display.</p>';
+        console.warn('formatCustomerProfileForCheckout: No data fields found in profile');
+        console.log('Profile structure:', JSON.stringify(customerProfile, null, 2));
+        html += '<p style="color: var(--text-secondary); padding: 20px;">No customer profile data fields found. The profile structure may be different than expected.</p>';
+        html += '<details style="margin-top: 10px;"><summary style="cursor: pointer; color: var(--text-secondary);">View Raw Profile Data</summary>';
+        html += `<pre style="background: #f8f9fa; padding: 15px; border-radius: 4px; overflow-x: auto; font-size: 12px; margin-top: 10px;">${JSON.stringify(customerProfile, null, 2)}</pre>`;
+        html += '</details>';
     }
     
     html += '</div>';
-    console.log('formatCustomerProfileForCheckout: Generated HTML, hasData:', hasData);
+    console.log('formatCustomerProfileForCheckout: Generated HTML, hasData:', hasData, 'HTML length:', html.length);
     return html;
 }
 
