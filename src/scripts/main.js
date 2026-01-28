@@ -93,15 +93,27 @@ async function initiateKlarnaIdentityFlow() {
             console.error('Error hint:', data.hint);
             console.error('Account ID used:', data.accountIdUsed);
             console.error('API URL:', data.apiUrl);
-            console.error('Auth method:', data.authMethod);
+            if (data.error_id) {
+                console.error('🔴 Klarna Error ID:', data.error_id, '- Use this ID when contacting Klarna support');
+            }
             
-            // Show detailed error message
+            // Show detailed error message with error_id prominently displayed
             let errorMessage = data.error || `Failed to create identity request: ${response.status}`;
+            
+            // Display Klarna error_id prominently if available
+            if (data.error_id) {
+                errorMessage += `\n\n🔴 Klarna Error ID: ${data.error_id}`;
+                if (data.error_type) errorMessage += `\nError Type: ${data.error_type}`;
+                if (data.error_code) errorMessage += `\nError Code: ${data.error_code}`;
+                if (data.error_message) errorMessage += `\nError Message: ${data.error_message}`;
+                errorMessage += `\n\nUse the Error ID above when contacting Klarna support.`;
+            }
+            
             if (data.details) {
                 errorMessage += `\n\nDetails: ${typeof data.details === 'string' ? data.details : JSON.stringify(data.details, null, 2)}`;
             }
             if (data.hint) {
-                errorMessage += `\n\nHint: ${data.hint}`;
+                errorMessage += `\n\n💡 Hint: ${data.hint}`;
             }
             
             throw new Error(errorMessage);
@@ -168,7 +180,24 @@ async function fetchAndDisplayIdentityData(identityRequestId) {
         
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-            throw new Error(errorData.error || `HTTP ${response.status}: Failed to fetch identity data`);
+            
+            // Extract and display Klarna error_id prominently
+            let errorMsg = errorData.error || `HTTP ${response.status}: Failed to fetch identity data`;
+            if (errorData.error_id) {
+                errorMsg += `\n\n🔴 Klarna Error ID: ${errorData.error_id}`;
+                if (errorData.error_type) errorMsg += `\nError Type: ${errorData.error_type}`;
+                if (errorData.error_code) errorMsg += `\nError Code: ${errorData.error_code}`;
+                if (errorData.error_message) errorMsg += `\nError Message: ${errorData.error_message}`;
+                errorMsg += `\n\nUse the Error ID above when contacting Klarna support.`;
+            }
+            if (errorData.hint) {
+                errorMsg += `\n\n💡 Hint: ${errorData.hint}`;
+            }
+            if (errorData.details) {
+                errorMsg += `\n\nDetails:\n${typeof errorData.details === 'string' ? errorData.details : JSON.stringify(errorData.details, null, 2)}`;
+            }
+            
+            throw new Error(errorMsg);
         }
         
         const data = await response.json();
@@ -186,7 +215,19 @@ async function fetchAndDisplayIdentityData(identityRequestId) {
         }
     } catch (error) {
         console.error('Error fetching identity data:', error);
-        showResult(`Failed to fetch identity data: ${error.message}. Please try again.`, 'error');
+        
+        // Try to extract error_id from error message if it's in the response
+        let errorMessage = error.message;
+        try {
+            const errorData = await fetch(`/api/klarna/identity/request/${encodeURIComponent(identityRequestId)}`).then(r => r.json()).catch(() => null);
+            if (errorData?.error_id) {
+                errorMessage += `\n\nKlarna Error ID: ${errorData.error_id}\nError Type: ${errorData.error_type || 'N/A'}\nError Code: ${errorData.error_code || 'N/A'}\n\nUse the Error ID above when contacting Klarna support.`;
+            }
+        } catch (e) {
+            // Ignore
+        }
+        
+        showResult(`Failed to fetch identity data: ${errorMessage}`, 'error');
     }
 }
 

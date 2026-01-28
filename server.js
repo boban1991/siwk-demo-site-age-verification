@@ -121,12 +121,24 @@ app.post('/api/klarna/identity/request', async (req, res) => {
       console.error('Request URL:', apiUrl);
       console.error('Account ID used:', accountId);
       
-      // Try to parse error response
+      // Try to parse error response and extract error_id
       let errorDetails = errorText;
+      let errorId = null;
+      let errorType = null;
+      let errorCode = null;
+      let errorMessage = null;
+      
       try {
         const errorJson = JSON.parse(errorText);
         errorDetails = JSON.stringify(errorJson, null, 2);
+        errorId = errorJson.error_id || errorJson.errorId;
+        errorType = errorJson.error_type || errorJson.errorType;
+        errorCode = errorJson.error_code || errorJson.errorCode;
+        errorMessage = errorJson.error_message || errorJson.errorMessage;
         console.error('Parsed error:', errorDetails);
+        if (errorId) {
+          console.error('Klarna Error ID:', errorId, '- Use this ID when contacting Klarna support');
+        }
       } catch (e) {
         // Not JSON, use as-is
       }
@@ -138,10 +150,14 @@ app.post('/api/klarna/identity/request', async (req, res) => {
       
       return res.status(response.status).json({ 
         error: `Klarna API error: ${response.status}`,
+        error_id: errorId,
+        error_type: errorType,
+        error_code: errorCode,
+        error_message: errorMessage,
         details: errorDetails,
         accountIdUsed: accountId,
         apiUrl: apiUrl,
-        hint: response.status === 401 ? 'Authentication failed. Verify KLARNA_USER_NAME, KLARNA_PASSWORD, and KLARNA_ACCOUNT_ID are correct and match the test environment.' : undefined
+        hint: errorId ? `Klarna Error ID: ${errorId} - Use this ID when contacting Klarna support` : (response.status === 401 ? 'Authentication failed. Verify KLARNA_USER_NAME, KLARNA_PASSWORD, and KLARNA_ACCOUNT_ID are correct and match the test environment.' : undefined)
       });
     }
 
@@ -219,21 +235,38 @@ app.get('/api/klarna/identity/request/:identityRequestId', async (req, res) => {
       console.error('Identity Request ID used:', identityRequestId);
       console.error('Encoded ID used:', encodedIdentityRequestId);
       
-      // Try to parse error response
+      // Try to parse error response and extract error_id
       let errorDetails = errorText;
+      let errorId = null;
+      let errorType = null;
+      let errorCode = null;
+      let errorMessage = null;
+      
       try {
         const errorJson = JSON.parse(errorText);
         errorDetails = JSON.stringify(errorJson, null, 2);
+        errorId = errorJson.error_id || errorJson.errorId;
+        errorType = errorJson.error_type || errorJson.errorType;
+        errorCode = errorJson.error_code || errorJson.errorCode;
+        errorMessage = errorJson.error_message || errorJson.errorMessage;
         console.error('Parsed error:', errorDetails);
+        if (errorId) {
+          console.error('Klarna Error ID:', errorId, '- Use this ID when contacting Klarna support');
+        }
       } catch (e) {
         // Not JSON, use as-is
       }
       
       return res.status(response.status).json({ 
         error: `Klarna API error: ${response.status}`,
+        error_id: errorId,
+        error_type: errorType,
+        error_code: errorCode,
+        error_message: errorMessage,
         details: errorDetails,
         requestedUrl: apiUrl,
-        identityRequestId: identityRequestId
+        identityRequestId: identityRequestId,
+        hint: errorId ? `Klarna Error ID: ${errorId} - Use this ID when contacting Klarna support` : undefined
       });
     }
 
