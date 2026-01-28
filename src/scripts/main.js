@@ -521,8 +521,9 @@ async function fetchAndDisplayIdentityData(identityRequestId) {
         
         // Check if request is completed
         if (data.state === 'COMPLETED' || data.state === 'APPROVED') {
+            const customerProfile = data.state_context?.klarna_customer?.customer_profile;
             displayCustomerData(data);
-            setVerificationStatus(true);
+            setVerificationStatus(true, customerProfile);
         } else {
             console.log('Identity request state:', data.state, '- polling...');
             showResult(`Identity request is in state: ${data.state}. Please wait...`, 'info');
