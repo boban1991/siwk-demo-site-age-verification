@@ -19,9 +19,13 @@ const KLARNA_CONFIG = {
   apiKey: process.env.KLARNA_PASSWORD,
   apiUrl: process.env.KLARNA_BASE_URL || 'https://api-global.test.klarna.com',
   accountId: process.env.KLARNA_ACCOUNT_ID,
-  returnUrl: process.env.KLARNA_RETURN_URL || (process.env.VERCEL_URL 
-    ? (process.env.VERCEL_URL.startsWith('http') ? process.env.VERCEL_URL : `https://${process.env.VERCEL_URL}`)
-    : 'https://siwk-demo-site-age-verification.vercel.app'),
+  returnUrl: (() => {
+    const url = process.env.KLARNA_RETURN_URL || (process.env.VERCEL_URL 
+      ? (process.env.VERCEL_URL.startsWith('http') ? process.env.VERCEL_URL : `https://${process.env.VERCEL_URL}`)
+      : 'https://siwk-demo-site-age-verification.vercel.app');
+    // Ensure URL always starts with https://
+    return url.startsWith('http') ? url : `https://${url}`;
+  })(),
   customerRegion: process.env.KLARNA_CUSTOMER_REGION || 'krn:partner:eu1:region'
 };
 
