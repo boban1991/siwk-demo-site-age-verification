@@ -190,22 +190,45 @@ app.get('/api/klarna/identity/request/:identityRequestId', async (req, res) => {
     // Use account ID as-is from environment variable
     const accountId = KLARNA_CONFIG.accountId;
 
-    console.log('Reading identity request with Basic Auth and X-Klarna-Customer-Region:', KLARNA_CONFIG.customerRegion);
+    console.log('Reading identity request:', identityRequestId);
+    console.log('Account ID:', accountId);
+    console.log('API URL:', KLARNA_CONFIG.apiUrl);
+    console.log('Using Basic Auth with X-Klarna-Customer-Region:', KLARNA_CONFIG.customerRegion);
 
-    const response = await fetch(
-      `${KLARNA_CONFIG.apiUrl}/v2/accounts/${accountId}/identity/requests/${identityRequestId}`,
-      {
-        method: 'GET',
-        headers: klarnaApiHeaders()
-      }
-    );
+    // URL encode the identityRequestId for the API call (it contains colons and special chars)
+    const encodedIdentityRequestId = encodeURIComponent(identityRequestId);
+    const apiUrl = `${KLARNA_CONFIG.apiUrl}/v2/accounts/${accountId}/identity/requests/${encodedIdentityRequestId}`;
+    
+    console.log('Fetching from Klarna API:', apiUrl);
+
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: klarnaApiHeaders()
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Klarna API error:', response.status, errorText);
+      console.error('Klarna API error:', response.status);
+      console.error('Error response:', errorText);
+      console.error('Requested URL:', apiUrl);
+      console.error('Identity Request ID used:', identityRequestId);
+      console.error('Encoded ID used:', encodedIdentityRequestId);
+      
+      // Try to parse error response
+      let errorDetails = errorText;
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorDetails = JSON.stringify(errorJson, null, 2);
+        console.error('Parsed error:', errorDetails);
+      } catch (e) {
+        // Not JSON, use as-is
+      }
+      
       return res.status(response.status).json({ 
         error: `Klarna API error: ${response.status}`,
-        details: errorText
+        details: errorDetails,
+        requestedUrl: apiUrl,
+        identityRequestId: identityRequestId
       });
     }
 
