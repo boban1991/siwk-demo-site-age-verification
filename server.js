@@ -312,17 +312,38 @@ app.all('/api/klarna/callback', async (req, res) => {
     console.log('Request URL:', req.url);
     console.log('Request originalUrl:', req.originalUrl);
     console.log('Request query:', req.query);
+    console.log('Request query string:', req.url.split('?')[1]);
     console.log('Request headers:', JSON.stringify(req.headers, null, 2));
     
-    const { identity_request_id, state } = req.query;
+    // Parse query parameters manually if Express didn't parse them correctly
+    let identity_request_id = req.query.identity_request_id;
+    let state = req.query.state;
+    
+    // If query params are missing, try parsing from URL manually
+    if (!identity_request_id && req.url.includes('identity_request_id=')) {
+      const urlParams = new URLSearchParams(req.url.split('?')[1] || '');
+      identity_request_id = urlParams.get('identity_request_id');
+      state = urlParams.get('state') || state;
+      console.log('Manually parsed identity_request_id:', identity_request_id);
+      console.log('Manually parsed state:', state);
+    }
     
     if (!identity_request_id) {
       console.error('Missing identity_request_id in callback');
+      console.error('Full request details:', {
+        method: req.method,
+        path: req.path,
+        url: req.url,
+        originalUrl: req.originalUrl,
+        query: req.query,
+        queryString: req.url.split('?')[1]
+      });
       // Return JSON error instead of redirect for debugging
       return res.status(400).json({ 
         error: 'Missing identity_request_id',
         receivedQuery: req.query,
-        receivedUrl: req.url
+        receivedUrl: req.url,
+        parsedQueryString: req.url.split('?')[1]
       });
     }
 
