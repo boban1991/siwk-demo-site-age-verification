@@ -92,6 +92,56 @@
         </div>
     </div>
 
+    <!-- Checkout Screen -->
+    <div id="checkout-screen" class="checkout-screen hidden">
+        <div class="checkout-content">
+            <div class="checkout-header">
+                <h1>Checkout</h1>
+                <button id="close-checkout-btn" class="close-checkout-btn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="checkout-body">
+                <div class="checkout-section">
+                    <h2>Order Summary</h2>
+                    <div id="checkout-items" class="checkout-items">
+                        <!-- Items will be populated here -->
+                    </div>
+                    <div class="checkout-total">
+                        <div class="total-row">
+                            <span>Subtotal</span>
+                            <span id="checkout-subtotal">$0.00</span>
+                        </div>
+                        <div class="total-row">
+                            <span>Shipping</span>
+                            <span>Free</span>
+                        </div>
+                        <div class="total-row total-row-final">
+                            <span>Total</span>
+                            <span id="checkout-total">$0.00</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="checkout-section">
+                    <h2>Order Complete</h2>
+                    <div class="order-success">
+                        <div class="success-icon-large">✅</div>
+                        <p>Thank you for your order!</p>
+                        <p class="order-note">This is a demo site - no actual payment was processed.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="checkout-actions">
+                <button id="continue-shopping-btn" class="btn btn-primary btn-large">Continue Shopping</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Success Screen (Shows customer data after verification) -->
     <div id="success-screen" class="success-screen hidden">
         <div class="success-content">

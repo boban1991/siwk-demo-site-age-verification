@@ -119,15 +119,54 @@ window.removeFromCart = removeFromCart;
 function proceedToCheckout() {
     try {
         console.log('proceedToCheckout called');
-        // This would normally redirect to a checkout page
-        // For demo, we'll show a success message
-        alert('Checkout would proceed here. This is a demo - no actual payment will be processed.');
-        // Clear cart after checkout
-        saveCart([]);
-        updateCartUI();
+        
+        const cart = getCart();
+        if (cart.length === 0) {
+            alert('Your cart is empty');
+            return;
+        }
+        
+        // Close cart modal
         const cartModal = document.getElementById('cart-modal');
         if (cartModal) cartModal.classList.add('hidden');
+        
+        // Show checkout screen
+        const checkoutScreen = document.getElementById('checkout-screen');
+        const checkoutItems = document.getElementById('checkout-items');
+        const checkoutSubtotal = document.getElementById('checkout-subtotal');
+        const checkoutTotal = document.getElementById('checkout-total');
+        
+        if (!checkoutScreen || !checkoutItems) {
+            console.error('Checkout screen elements not found');
+            return;
+        }
+        
+        // Populate checkout items
+        const subtotal = getCartTotal();
+        checkoutItems.innerHTML = cart.map(item => `
+            <div class="checkout-item">
+                <div class="checkout-item-info">
+                    <h4>${item.name}</h4>
+                    <p>Quantity: ${item.quantity} ${item.ageRestricted ? '<span class="age-restricted-badge">18+</span>' : ''}</p>
+                </div>
+                <div class="checkout-item-price">
+                    $${(item.price * item.quantity).toFixed(2)}
+                </div>
+            </div>
+        `).join('');
+        
+        // Update totals
+        if (checkoutSubtotal) checkoutSubtotal.textContent = `$${subtotal.toFixed(2)}`;
+        if (checkoutTotal) checkoutTotal.textContent = `$${subtotal.toFixed(2)}`;
+        
+        // Show checkout screen
+        checkoutScreen.classList.remove('hidden');
+        
+        // Clear cart after showing checkout
+        saveCart([]);
+        updateCartUI();
         sessionStorage.removeItem('checkout_pending');
+        
     } catch (error) {
         console.error('Error in proceedToCheckout:', error);
         alert('An error occurred during checkout. Please try again.');
@@ -1037,16 +1076,24 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize cart UI
     updateCartUI();
     
-    // Debug: Log button status after a short delay
-    setTimeout(() => {
-        const checkoutBtnCheck = document.getElementById('checkout-btn');
-        console.log('Checkout button check after init:', checkoutBtnCheck);
-        if (checkoutBtnCheck) {
-            console.log('Button is visible:', checkoutBtnCheck.offsetParent !== null);
-            console.log('Button is disabled:', checkoutBtnCheck.disabled);
-            console.log('Button computed style:', window.getComputedStyle(checkoutBtnCheck).pointerEvents);
-        }
-    }, 1000);
+    // Checkout screen functionality
+    const checkoutScreen = document.getElementById('checkout-screen');
+    const closeCheckoutBtn = document.getElementById('close-checkout-btn');
+    const continueShoppingBtn = document.getElementById('continue-shopping-btn');
+    
+    if (closeCheckoutBtn) {
+        closeCheckoutBtn.addEventListener('click', () => {
+            if (checkoutScreen) checkoutScreen.classList.add('hidden');
+        });
+    }
+    
+    if (continueShoppingBtn) {
+        continueShoppingBtn.addEventListener('click', () => {
+            if (checkoutScreen) checkoutScreen.classList.add('hidden');
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    }
 });
 
 // Add spinner animation CSS
