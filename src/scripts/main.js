@@ -3,6 +3,118 @@ const VERIFICATION_KEY = 'age_verified';
 const VERIFICATION_TIMESTAMP_KEY = 'age_verified_timestamp';
 const VERIFICATION_EXPIRY_HOURS = 24; // Verification expires after 24 hours
 
+// Cart Management
+const CART_KEY = 'pharmacy_cart';
+
+function getCart() {
+    const cartJson = localStorage.getItem(CART_KEY);
+    return cartJson ? JSON.parse(cartJson) : [];
+}
+
+function saveCart(cart) {
+    localStorage.setItem(CART_KEY, JSON.stringify(cart));
+}
+
+function addToCart(productId, productName, price, ageRestricted) {
+    const cart = getCart();
+    const existingItem = cart.find(item => item.id === productId);
+    
+    if (existingItem) {
+        existingItem.quantity += 1;
+    } else {
+        cart.push({
+            id: productId,
+            name: productName,
+            price: parseFloat(price),
+            ageRestricted: ageRestricted === 'true',
+            quantity: 1
+        });
+    }
+    
+    saveCart(cart);
+    updateCartUI();
+    return cart;
+}
+
+function removeFromCart(productId) {
+    const cart = getCart();
+    const filteredCart = cart.filter(item => item.id !== productId);
+    saveCart(filteredCart);
+    updateCartUI();
+    return filteredCart;
+}
+
+function updateCartQuantity(productId, quantity) {
+    const cart = getCart();
+    const item = cart.find(item => item.id === productId);
+    if (item) {
+        if (quantity <= 0) {
+            return removeFromCart(productId);
+        }
+        item.quantity = quantity;
+        saveCart(cart);
+        updateCartUI();
+    }
+    return cart;
+}
+
+function getCartTotal() {
+    const cart = getCart();
+    return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+}
+
+function hasAgeRestrictedProducts() {
+    const cart = getCart();
+    return cart.some(item => item.ageRestricted);
+}
+
+function updateCartUI() {
+    const cart = getCart();
+    const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+    const cartCountEl = document.getElementById('cart-count');
+    if (cartCountEl) {
+        cartCountEl.textContent = cartCount;
+        cartCountEl.style.display = cartCount > 0 ? 'inline-flex' : 'none';
+    }
+    
+    // Update cart modal
+    const cartItemsEl = document.getElementById('cart-items');
+    const cartTotalPriceEl = document.getElementById('cart-total-price');
+    
+    if (cartItemsEl) {
+        if (cart.length === 0) {
+            cartItemsEl.innerHTML = '<div class="cart-empty">Your cart is empty</div>';
+        } else {
+            cartItemsEl.innerHTML = cart.map(item => `
+                <div class="cart-item">
+                    <div class="cart-item-info">
+                        <h4>${item.name}</h4>
+                        <p>$${item.price.toFixed(2)} ${item.ageRestricted ? '<span class="age-restricted-badge">18+</span>' : ''}</p>
+                    </div>
+                    <div class="cart-item-controls">
+                        <button class="cart-qty-btn" onclick="updateCartQuantity('${item.id}', ${item.quantity - 1})">-</button>
+                        <span class="cart-qty">${item.quantity}</span>
+                        <button class="cart-qty-btn" onclick="updateCartQuantity('${item.id}', ${item.quantity + 1})">+</button>
+                        <button class="cart-remove-btn" onclick="removeFromCart('${item.id}')">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+    }
+    
+    if (cartTotalPriceEl) {
+        cartTotalPriceEl.textContent = `$${getCartTotal().toFixed(2)}`;
+    }
+}
+
+// Make functions available globally for onclick handlers
+window.updateCartQuantity = updateCartQuantity;
+window.removeFromCart = removeFromCart;
+
 // Check if user is already verified
 function checkVerificationStatus() {
     const verified = localStorage.getItem(VERIFICATION_KEY) === 'true';
@@ -44,15 +156,14 @@ async function initiateKlarnaIdentityFlow() {
     // Show loading state
     klarnaVerifyBtn.disabled = true;
     klarnaVerifyBtn.innerHTML = `
-        <span class="klarna-button-content">
-            <svg class="spinner" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="32" stroke-dashoffset="32">
-                    <animate attributeName="stroke-dasharray" dur="2s" values="0 32;16 16;0 32;0 32" repeatCount="indefinite"/>
-                    <animate attributeName="stroke-dashoffset" dur="2s" values="0;-16;-32;-32" repeatCount="indefinite"/>
-                </circle>
-            </svg>
-            <span class="klarna-button-text">Creating request...</span>
-        </span>
+        <svg class="spinner" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="color: white;">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="32" stroke-dashoffset="32">
+                <animate attributeName="stroke-dasharray" dur="2s" values="0 32;16 16;0 32;0 32" repeatCount="indefinite"/>
+                <animate attributeName="stroke-dashoffset" dur="2s" values="0;-16;-32;-32" repeatCount="indefinite"/>
+            </circle>
+        </svg>
+        <span class="klarna-button-text">Creating request...</span>
+        <span class="klarna-pill">Klarna</span>
     `;
     
     try {
@@ -155,16 +266,8 @@ async function initiateKlarnaIdentityFlow() {
         // Reset button
         klarnaVerifyBtn.disabled = false;
         klarnaVerifyBtn.innerHTML = `
-            <span class="klarna-button-content">
-                <span class="klarna-logo">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="currentColor"/>
-                        <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                </span>
-                <span class="klarna-button-text">Continue with Klarna</span>
-            </span>
+            <span class="klarna-button-text">Continue with</span>
+            <span class="klarna-pill">Klarna</span>
         `;
     }
 }
@@ -397,6 +500,17 @@ function displayCustomerData(identityData) {
     
     // Scroll to top of success screen
     successScreen.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // If checkout was pending, proceed after verification
+    if (sessionStorage.getItem('checkout_pending') === 'true') {
+        // Wait a moment for user to see success, then proceed
+        setTimeout(() => {
+            const continueBtn = document.getElementById('continue-btn');
+            if (continueBtn) {
+                continueBtn.textContent = 'Continue to Checkout';
+            }
+        }, 500);
+    }
 }
 
 // Initialize the application
@@ -430,14 +544,11 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.removeItem(VERIFICATION_KEY);
         localStorage.removeItem(VERIFICATION_TIMESTAMP_KEY);
         window.history.replaceState({}, document.title, window.location.pathname);
-        showAgeVerification();
-    } else if (checkVerificationStatus()) {
-        // Already verified
-        showMainContent();
-    } else {
-        // Show age verification
-        showAgeVerification();
     }
+    
+    // Always show main content (no automatic age verification)
+    // Age verification will be triggered during checkout if needed
+    showMainContent();
     
     // Klarna Identity API button
     const klarnaVerifyBtn = document.getElementById('klarna-verify-btn');
@@ -453,7 +564,13 @@ document.addEventListener('DOMContentLoaded', () => {
         continueBtn.addEventListener('click', () => {
             const successScreen = document.getElementById('success-screen');
             if (successScreen) successScreen.classList.add('hidden');
-            showMainContent();
+            
+            // If checkout was pending, proceed to checkout
+            if (sessionStorage.getItem('checkout_pending') === 'true') {
+                proceedToCheckout();
+            } else {
+                showMainContent();
+            }
         });
     }
     
@@ -706,19 +823,116 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
     
-    // Handle product and offer buttons
-    gameButtons.forEach(button => {
+    // Handle "Add to Cart" buttons
+    const addToCartButtons = document.querySelectorAll('.add-to-cart-btn');
+    addToCartButtons.forEach(button => {
         button.addEventListener('click', (e) => {
             e.preventDefault();
-            // In a real application, this would add to cart or navigate to product page
-            console.log('Product/action clicked:', button.textContent);
-            // For demo purposes, show a message
-            if (!button.closest('.age-verification-modal')) {
-                // You could add a toast notification here
+            const productCard = button.closest('.game-card');
+            if (productCard) {
+                const productId = productCard.getAttribute('data-product-id');
+                const productName = productCard.getAttribute('data-product-name');
+                const price = productCard.getAttribute('data-product-price');
+                const ageRestricted = productCard.getAttribute('data-age-restricted');
+                
+                addToCart(productId, productName, price, ageRestricted);
+                
+                // Show cart modal
+                const cartModal = document.getElementById('cart-modal');
+                if (cartModal) {
+                    cartModal.classList.remove('hidden');
+                }
+                
+                // Visual feedback
+                button.textContent = 'Added!';
+                button.style.background = 'var(--success-color)';
+                setTimeout(() => {
+                    button.textContent = 'Add to Cart';
+                    button.style.background = '';
+                }, 1000);
             }
         });
     });
+    
+    // Handle product and offer buttons (non-cart buttons)
+    gameButtons.forEach(button => {
+        if (!button.classList.contains('add-to-cart-btn')) {
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log('Product/action clicked:', button.textContent);
+            });
+        }
+    });
+    
+    // Cart modal functionality
+    const cartBtn = document.getElementById('cart-btn');
+    const cartModal = document.getElementById('cart-modal');
+    const closeCartBtn = document.getElementById('close-cart-btn');
+    const checkoutBtn = document.getElementById('checkout-btn');
+    const cartOverlay = document.querySelector('.cart-overlay');
+    
+    if (cartBtn && cartModal) {
+        cartBtn.addEventListener('click', () => {
+            cartModal.classList.remove('hidden');
+        });
+    }
+    
+    if (closeCartBtn) {
+        closeCartBtn.addEventListener('click', () => {
+            if (cartModal) cartModal.classList.add('hidden');
+        });
+    }
+    
+    if (cartOverlay) {
+        cartOverlay.addEventListener('click', () => {
+            if (cartModal) cartModal.classList.add('hidden');
+        });
+    }
+    
+    // Checkout button - trigger age verification if needed
+    if (checkoutBtn) {
+        checkoutBtn.addEventListener('click', () => {
+            const cart = getCart();
+            if (cart.length === 0) {
+                alert('Your cart is empty');
+                return;
+            }
+            
+            // Check if cart has age-restricted products
+            if (hasAgeRestrictedProducts()) {
+                // Check if user is already verified
+                if (!checkVerificationStatus()) {
+                    // Show age verification modal
+                    if (cartModal) cartModal.classList.add('hidden');
+                    showAgeVerification();
+                    // Store that we're in checkout flow
+                    sessionStorage.setItem('checkout_pending', 'true');
+                } else {
+                    // Already verified, proceed to checkout
+                    proceedToCheckout();
+                }
+            } else {
+                // No age-restricted products, proceed directly to checkout
+                proceedToCheckout();
+            }
+        });
+    }
+    
+    // Initialize cart UI
+    updateCartUI();
 });
+
+function proceedToCheckout() {
+    // This would normally redirect to a checkout page
+    // For demo, we'll show a success message
+    alert('Checkout would proceed here. This is a demo - no actual payment will be processed.');
+    // Clear cart after checkout
+    saveCart([]);
+    updateCartUI();
+    const cartModal = document.getElementById('cart-modal');
+    if (cartModal) cartModal.classList.add('hidden');
+    sessionStorage.removeItem('checkout_pending');
+}
 
 // Add spinner animation CSS
 const style = document.createElement('style');
@@ -728,7 +942,7 @@ style.textContent = `
     }
     .klarna-button .spinner {
         animation: spin 1s linear infinite;
-        color: #FFA8CD;
+        color: #FFFFFF;
     }
 `;
 document.head.appendChild(style);

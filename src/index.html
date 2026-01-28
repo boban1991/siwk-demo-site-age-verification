@@ -38,16 +38,8 @@
                         <h3>Quick & Secure Verification</h3>
                         <p>Verify your age instantly with Klarna</p>
                         <button id="klarna-verify-btn" class="klarna-button">
-                            <span class="klarna-button-content">
-                                <span class="klarna-logo">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="currentColor"/>
-                                        <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                        <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                    </svg>
-                                </span>
-                                <span class="klarna-button-text">Continue with Klarna</span>
-                            </span>
+                            <span class="klarna-button-text">Continue with</span>
+                            <span class="klarna-pill">Klarna</span>
                         </button>
                     </div>
                     
@@ -69,6 +61,33 @@
                 </div>
 
                 <div id="verification-result" class="verification-result"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cart Modal -->
+    <div id="cart-modal" class="cart-modal hidden">
+        <div class="cart-overlay"></div>
+        <div class="cart-content">
+            <div class="cart-header">
+                <h2>Your Cart</h2>
+                <button id="close-cart-btn" class="close-cart-btn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </div>
+            <div id="cart-items" class="cart-items">
+                <!-- Cart items will be populated here -->
+            </div>
+            <div class="cart-footer">
+                <div class="cart-total">
+                    <span>Total:</span>
+                    <span id="cart-total-price">$0.00</span>
+                </div>
+                <button id="checkout-btn" class="btn btn-primary btn-large checkout-btn">
+                    Proceed to Checkout
+                </button>
             </div>
         </div>
     </div>
@@ -143,7 +162,13 @@
                 </ul>
                 <div class="nav-actions">
                     <button class="btn btn-outline">Sign In</button>
-                    <button class="btn btn-primary">Cart (0)</button>
+                    <button id="cart-btn" class="btn btn-primary cart-button">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 3H5L5.4 5M7 13H17L21 5H5.4M7 13L5.4 5M7 13L4.7 15.3C4.3 15.7 4.6 16.5 5.1 16.5H17M17 13V17C17 18.1 17.9 19 19 19C20.1 19 21 18.1 21 17V13M9 19.5C9.8 19.5 10.5 20.2 10.5 21C10.5 21.8 9.8 22.5 9 22.5C8.2 22.5 7.5 21.8 7.5 21C7.5 20.2 8.2 19.5 9 19.5ZM20 19.5C20.8 19.5 21.5 20.2 21.5 21C21.5 21.8 20.8 22.5 20 22.5C19.2 22.5 18.5 21.8 18.5 21C18.5 20.2 19.2 19.5 20 19.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span>Cart</span>
+                        <span id="cart-count" class="cart-count">0</span>
+                    </button>
                 </div>
                 <button class="mobile-menu-toggle" id="mobile-menu-toggle">
                     <span></span>
@@ -223,7 +248,7 @@
                     </div>
                 </div>
                 <div class="games-grid">
-                    <div class="game-card" data-category="cold-flu">
+                    <div class="game-card" data-category="cold-flu" data-product-id="cold-flu-relief" data-age-restricted="true" data-product-name="Cold & Flu Relief" data-product-price="12.99">
                         <div class="game-image" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
                             <span class="game-icon">💊</span>
                             <div class="game-badge">18+</div>
@@ -235,10 +260,10 @@
                                 <span class="stars">★★★★★</span>
                                 <span class="rating-text">4.9</span>
                             </div>
-                            <button class="btn btn-game">Add to Cart</button>
+                            <button class="btn btn-game add-to-cart-btn">Add to Cart</button>
                         </div>
                     </div>
-                    <div class="game-card" data-category="pain-relief">
+                    <div class="game-card" data-category="pain-relief" data-product-id="ibuprofen" data-age-restricted="false" data-product-name="Ibuprofen 400mg" data-product-price="8.99">
                         <div class="game-image" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
                             <span class="game-icon">💊</span>
                         </div>
@@ -249,10 +274,10 @@
                                 <span class="stars">★★★★☆</span>
                                 <span class="rating-text">4.7</span>
                             </div>
-                            <button class="btn btn-game">Add to Cart</button>
+                            <button class="btn btn-game add-to-cart-btn">Add to Cart</button>
                         </div>
                     </div>
-                    <div class="game-card" data-category="cold-flu">
+                    <div class="game-card" data-category="cold-flu" data-product-id="nasal-decongestant" data-age-restricted="true" data-product-name="Nasal Decongestant" data-product-price="10.99">
                         <div class="game-image" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
                             <span class="game-icon">💊</span>
                         </div>
@@ -263,10 +288,10 @@
                                 <span class="stars">★★★★★</span>
                                 <span class="rating-text">4.8</span>
                             </div>
-                            <button class="btn btn-game">Add to Cart</button>
+                            <button class="btn btn-game add-to-cart-btn">Add to Cart</button>
                         </div>
                     </div>
-                    <div class="game-card" data-category="vitamins">
+                    <div class="game-card" data-category="vitamins" data-product-id="vitamin-d3" data-age-restricted="false" data-product-name="Vitamin D3" data-product-price="15.99">
                         <div class="game-image" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
                             <span class="game-icon">💊</span>
                         </div>
@@ -277,10 +302,10 @@
                                 <span class="stars">★★★★☆</span>
                                 <span class="rating-text">4.6</span>
                             </div>
-                            <button class="btn btn-game">Add to Cart</button>
+                            <button class="btn btn-game add-to-cart-btn">Add to Cart</button>
                         </div>
                     </div>
-                    <div class="game-card" data-category="pain-relief">
+                    <div class="game-card" data-category="pain-relief" data-product-id="acetaminophen" data-age-restricted="false" data-product-name="Acetaminophen" data-product-price="7.99">
                         <div class="game-image" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
                             <span class="game-icon">💊</span>
                         </div>
@@ -291,10 +316,10 @@
                                 <span class="stars">★★★★★</span>
                                 <span class="rating-text">4.9</span>
                             </div>
-                            <button class="btn btn-game">Add to Cart</button>
+                            <button class="btn btn-game add-to-cart-btn">Add to Cart</button>
                         </div>
                     </div>
-                    <div class="game-card" data-category="cold-flu">
+                    <div class="game-card" data-category="cold-flu" data-product-id="day-night-cold" data-age-restricted="true" data-product-name="Day & Night Cold" data-product-price="14.99">
                         <div class="game-image" style="background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);">
                             <span class="game-icon">💊</span>
                             <div class="game-badge">18+</div>
@@ -306,10 +331,10 @@
                                 <span class="stars">★★★★★</span>
                                 <span class="rating-text">4.8</span>
                             </div>
-                            <button class="btn btn-game">Add to Cart</button>
+                            <button class="btn btn-game add-to-cart-btn">Add to Cart</button>
                         </div>
                     </div>
-                    <div class="game-card" data-category="vitamins">
+                    <div class="game-card" data-category="vitamins" data-product-id="multivitamin" data-age-restricted="false" data-product-name="Multivitamin Complex" data-product-price="19.99">
                         <div class="game-image" style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);">
                             <span class="game-icon">💊</span>
                         </div>
@@ -320,10 +345,10 @@
                                 <span class="stars">★★★★☆</span>
                                 <span class="rating-text">4.7</span>
                             </div>
-                            <button class="btn btn-game">Add to Cart</button>
+                            <button class="btn btn-game add-to-cart-btn">Add to Cart</button>
                         </div>
                     </div>
-                    <div class="game-card" data-category="pain-relief">
+                    <div class="game-card" data-category="pain-relief" data-product-id="migraine-relief" data-age-restricted="false" data-product-name="Migraine Relief" data-product-price="11.99">
                         <div class="game-image" style="background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);">
                             <span class="game-icon">💊</span>
                         </div>
@@ -334,7 +359,7 @@
                                 <span class="stars">★★★★★</span>
                                 <span class="rating-text">4.9</span>
                             </div>
-                            <button class="btn btn-game">Add to Cart</button>
+                            <button class="btn btn-game add-to-cart-btn">Add to Cart</button>
                         </div>
                     </div>
                 </div>
