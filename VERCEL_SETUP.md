@@ -50,6 +50,13 @@ Click **Add New** for each variable:
 - **Environments:** ✅ Production, ✅ Preview, ✅ Development
 - Click **Save**
 
+#### Variable 7 (optional): KLARNA_CUSTOMER_REGION
+- **Key:** `KLARNA_CUSTOMER_REGION`
+- **Value:** `krn:partner:eu1:region` (or your region KRN from Klarna)
+- **Environments:** ✅ Production, ✅ Preview, ✅ Development
+- **Note:** All Klarna API requests include the header `X-Klarna-Customer-Region`. Default is `krn:partner:eu1:region`. Override only if your account uses a different region.
+- Click **Save**
+
 ### 4. Redeploy Your Application
 
 After adding all variables:

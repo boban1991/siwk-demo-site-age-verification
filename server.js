@@ -19,7 +19,9 @@ const KLARNA_CONFIG = {
   accountId: process.env.KLARNA_ACCOUNT_ID,
   returnUrl: process.env.KLARNA_RETURN_URL || (process.env.VERCEL_URL 
     ? `https://${process.env.VERCEL_URL}` 
-    : 'https://siwk-kn-demo.vercel.app')
+    : 'https://siwk-kn-demo.vercel.app'),
+  // Customer region header (required for some Klarna APIs, e.g. Identity)
+  customerRegion: process.env.KLARNA_CUSTOMER_REGION || 'krn:partner:eu1:region'
 };
 
 // Get Basic Auth header for Klarna API
@@ -29,6 +31,16 @@ function getKlarnaAuthHeader() {
   }
   const credentials = Buffer.from(`${KLARNA_CONFIG.username}:${KLARNA_CONFIG.apiKey}`).toString('base64');
   return `Basic ${credentials}`;
+}
+
+// Common headers for all Klarna API requests (including X-Klarna-Customer-Region)
+function getKlarnaRequestHeaders(extra = {}) {
+  return {
+    'Authorization': getKlarnaAuthHeader(),
+    'Content-Type': 'application/json',
+    'X-Klarna-Customer-Region': KLARNA_CONFIG.customerRegion,
+    ...extra
+  };
 }
 
 // Route for the main page
@@ -94,19 +106,15 @@ app.post('/api/klarna/identity/request', async (req, res) => {
     console.log('Making request to:', apiUrl);
     console.log('Request body:', JSON.stringify(identityRequest, null, 2));
 
-    // Use Basic Auth with API key (as per official documentation)
-    const authHeader = getKlarnaAuthHeader();
-    console.log('Using Basic Auth with API key');
+    console.log('Using Basic Auth with API key and X-Klarna-Customer-Region:', KLARNA_CONFIG.customerRegion);
 
     // Make API call to create identity request
     const response = await fetch(apiUrl, {
       method: 'POST',
-      headers: {
-        'Authorization': authHeader,
-        'Content-Type': 'application/json',
+      headers: getKlarnaRequestHeaders({
         'Klarna-Idempotency-Key': idempotencyKey,
         'Partner-Correlation-Id': `partner-${Date.now()}`
-      },
+      }),
       body: JSON.stringify(identityRequest)
     });
     
@@ -192,19 +200,13 @@ app.get('/api/klarna/identity/request/:identityRequestId', async (req, res) => {
       accountId = parts[parts.length - 1];
     }
 
-    console.log('Reading identity request with Basic Auth');
-
-    // Use Basic Auth with API key
-    const authHeader = getKlarnaAuthHeader();
+    console.log('Reading identity request with Basic Auth and X-Klarna-Customer-Region:', KLARNA_CONFIG.customerRegion);
 
     const response = await fetch(
       `${KLARNA_CONFIG.apiUrl}/v2/accounts/${accountId}/identity/requests/${identityRequestId}`,
       {
         method: 'GET',
-        headers: {
-          'Authorization': authHeader,
-          'Content-Type': 'application/json'
-        }
+        headers: getKlarnaRequestHeaders()
       }
     );
 
