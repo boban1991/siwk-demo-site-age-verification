@@ -426,48 +426,28 @@ function displayCustomerData(identityData) {
     
     // Extract customer data from state_context
     const customerProfile = identityData.state_context?.klarna_customer?.customer_profile;
-    const customerToken = identityData.state_context?.klarna_customer?.customer_token;
     
-    // Log what we're extracting
+    // Log what we're extracting (for debugging, but not shown to user)
     console.log('=== Extracting Customer Data ===');
     console.log('Customer Profile:', customerProfile);
-    console.log('Customer Token:', customerToken);
-    
-    // If no customer profile, log the full response structure for debugging
-    if (!customerProfile) {
-        console.warn('⚠️ No customer profile found in response!');
-        console.log('Full identity data structure:', JSON.stringify(identityData, null, 2));
-        console.log('Available paths:');
-        console.log('- identityData.state_context:', identityData.state_context);
-        if (identityData.state_context) {
-            console.log('- identityData.state_context.klarna_customer:', identityData.state_context.klarna_customer);
-        }
-    }
     
     let html = '';
     
-    // Show debug info if no data found
-    if (!customerProfile && !customerToken) {
+    // Show message if no profile data found
+    if (!customerProfile) {
         html += `
             <div class="data-item data-item-featured" style="border-color: var(--warning-color);">
                 <div class="data-item-content">
-                    <div class="data-label">⚠️ Debug Information</div>
+                    <div class="data-label">⚠️ No Profile Data Available</div>
                     <div class="data-value">
-                        <p>No customer profile data found in response.</p>
-                        <p>This could mean:</p>
-                        <ul style="text-align: left; margin-top: 12px;">
-                            <li>The user didn't complete the verification flow</li>
-                            <li>The user didn't consent to share the requested data</li>
-                            <li>The response structure is different than expected</li>
-                        </ul>
-                        <details style="margin-top: 16px;">
-                            <summary style="cursor: pointer; color: var(--primary-color);">View Raw Response</summary>
-                            <pre style="background: var(--bg-dark); padding: 12px; border-radius: 8px; margin-top: 8px; overflow-x: auto; font-size: 0.8rem; text-align: left;">${JSON.stringify(identityData, null, 2)}</pre>
-                        </details>
+                        <p>No customer profile data was returned from Klarna. This may occur if the user didn't complete the verification or didn't consent to share the requested information.</p>
                     </div>
                 </div>
             </div>
         `;
+        dataContent.innerHTML = html;
+        successScreen.classList.remove('hidden');
+        return;
     }
     
     // Name - Most prominent
@@ -582,7 +562,7 @@ function displayCustomerData(identityData) {
         }
     }
     
-    // Customer ID (less prominent)
+    // Customer ID (less prominent, but still useful)
     if (customerProfile?.customer_id?.customer_id) {
         html += `
             <div class="data-item data-item-minor">
@@ -598,36 +578,6 @@ function displayCustomerData(identityData) {
             </div>
         `;
     }
-    
-    // Customer Token (if available)
-    if (customerToken) {
-        html += `
-            <div class="data-item data-item-minor">
-                <div class="data-item-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M12 8V12M12 16H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                </div>
-                <div class="data-item-content">
-                    <div class="data-label">Customer Token</div>
-                    <div class="data-value data-value-small" style="font-family: monospace; word-break: break-all;">${customerToken}</div>
-                </div>
-            </div>
-        `;
-    }
-    
-    // Add a collapsible section to view raw response for debugging
-    html += `
-        <div class="data-item full-width" style="margin-top: 24px;">
-            <details style="width: 100%;">
-                <summary style="cursor: pointer; color: var(--primary-color); font-weight: 600; padding: 8px 0;">
-                    🔍 View Raw API Response (Debug)
-                </summary>
-                <pre style="background: var(--bg-dark); padding: 16px; border-radius: 8px; margin-top: 12px; overflow-x: auto; font-size: 0.8rem; text-align: left; max-height: 400px; overflow-y: auto; font-family: 'Courier New', monospace; line-height: 1.5;">${JSON.stringify(identityData, null, 2)}</pre>
-            </details>
-        </div>
-    `;
     
     dataContent.innerHTML = html;
     successScreen.classList.remove('hidden');
