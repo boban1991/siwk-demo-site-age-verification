@@ -160,25 +160,33 @@ async function initiateKlarnaIdentityFlow() {
 // Fetch and display identity request data
 async function fetchAndDisplayIdentityData(identityRequestId) {
     try {
-        const response = await fetch(`/api/klarna/identity/request/${identityRequestId}`);
-        const data = await response.json();
+        // URL encode the identity request ID (it may contain special characters)
+        const encodedId = encodeURIComponent(identityRequestId);
+        console.log('Fetching identity data for:', identityRequestId);
+        
+        const response = await fetch(`/api/klarna/identity/request/${encodedId}`);
         
         if (!response.ok) {
-            throw new Error(data.error || 'Failed to fetch identity data');
+            const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+            throw new Error(errorData.error || `HTTP ${response.status}: Failed to fetch identity data`);
         }
+        
+        const data = await response.json();
+        console.log('Identity data received:', data);
         
         // Check if request is completed
         if (data.state === 'COMPLETED' || data.state === 'APPROVED') {
             displayCustomerData(data);
             setVerificationStatus(true);
         } else {
-            showResult(`Identity request is in state: ${data.state}. Please wait...`, 'error');
+            console.log('Identity request state:', data.state, '- polling...');
+            showResult(`Identity request is in state: ${data.state}. Please wait...`, 'info');
             // Poll again after a delay if not completed
             setTimeout(() => fetchAndDisplayIdentityData(identityRequestId), 2000);
         }
     } catch (error) {
         console.error('Error fetching identity data:', error);
-        showResult('Failed to fetch identity data. Please try again.', 'error');
+        showResult(`Failed to fetch identity data: ${error.message}. Please try again.`, 'error');
     }
 }
 
@@ -271,25 +279,6 @@ function displayCustomerData(identityData) {
         `;
     }
     
-    // Locale
-    if (customerProfile?.locale) {
-        html += `
-            <div class="data-item">
-                <div class="data-label">Locale</div>
-                <div class="data-value">${customerProfile.locale.locale || 'N/A'}</div>
-            </div>
-        `;
-    }
-    
-    // Country
-    if (customerProfile?.country) {
-        html += `
-            <div class="data-item">
-                <div class="data-label">Country</div>
-                <div class="data-value">${customerProfile.country.country || 'N/A'}</div>
-            </div>
-        `;
-    }
     
     // Customer ID
     if (customerProfile?.customer_id) {
@@ -346,12 +335,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // Check for identity request ID in URL (from callback)
     const urlParams = new URLSearchParams(window.location.search);
     const identityRequestId = urlParams.get('identity_request_id');
+    const state = urlParams.get('state');
     
     if (identityRequestId) {
+        console.log('Identity request ID found in URL:', identityRequestId, 'State:', state);
         // Fetch and display identity data
         fetchAndDisplayIdentityData(identityRequestId);
-        // Clean up URL
-        window.history.replaceState({}, document.title, window.location.pathname);
+        // Clean up URL after a short delay to ensure data is loaded
+        setTimeout(() => {
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }, 100);
     } else if (urlParams.get('reset') === 'true') {
         // Reset verification
         localStorage.removeItem(VERIFICATION_KEY);

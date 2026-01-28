@@ -221,12 +221,21 @@ app.get('/api/klarna/callback', async (req, res) => {
     const { identity_request_id, state } = req.query;
     
     if (!identity_request_id) {
+      console.error('Missing identity_request_id in callback');
       return res.status(400).json({ error: 'Missing identity_request_id' });
     }
 
-    // Redirect to success page with identity request ID
-    // The frontend will fetch the identity request data
-    res.redirect(`/?identity_request_id=${identity_request_id}&state=${state || 'completed'}`);
+    console.log('Klarna callback received:', { identity_request_id, state });
+    
+    // URL encode the identity_request_id (it contains colons and other special chars)
+    const encodedId = encodeURIComponent(identity_request_id);
+    const encodedState = state ? encodeURIComponent(state) : 'completed';
+    
+    // Redirect to home page with identity request ID
+    // The frontend will fetch the identity request data and show success screen
+    const redirectUrl = `/?identity_request_id=${encodedId}&state=${encodedState}`;
+    console.log('Redirecting to:', redirectUrl);
+    res.redirect(redirectUrl);
   } catch (error) {
     console.error('Klarna callback error:', error);
     res.redirect('/?error=callback_failed');
