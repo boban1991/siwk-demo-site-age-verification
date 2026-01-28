@@ -195,11 +195,16 @@ app.get('/api/klarna/identity/request/:identityRequestId', async (req, res) => {
     console.log('API URL:', KLARNA_CONFIG.apiUrl);
     console.log('Using Basic Auth with X-Klarna-Customer-Region:', KLARNA_CONFIG.customerRegion);
 
-    // URL encode the identityRequestId for the API call (it contains colons and special chars)
+    // According to Klarna docs: GET /v2/accounts/{partner_account_id}/identity/requests/{identity_request_id}
+    // The identity_request_id is a KRN (e.g., krn:partner:eu1:test:identity:request:...)
+    // We need to URL encode each path segment, but the KRN should be encoded as a whole
+    // Try both encoded and unencoded to see which works
     const encodedIdentityRequestId = encodeURIComponent(identityRequestId);
-    const apiUrl = `${KLARNA_CONFIG.apiUrl}/v2/accounts/${accountId}/identity/requests/${encodedIdentityRequestId}`;
+    const apiUrl = `${KLARNA_CONFIG.apiUrl}/v2/accounts/${encodeURIComponent(accountId)}/identity/requests/${encodedIdentityRequestId}`;
     
     console.log('Fetching from Klarna API:', apiUrl);
+    console.log('Identity Request ID (raw):', identityRequestId);
+    console.log('Identity Request ID (encoded):', encodedIdentityRequestId);
 
     const response = await fetch(apiUrl, {
       method: 'GET',
