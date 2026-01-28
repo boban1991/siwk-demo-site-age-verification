@@ -197,10 +197,9 @@ app.get('/api/klarna/identity/request/:identityRequestId', async (req, res) => {
 
     // According to Klarna docs: GET /v2/accounts/{partner_account_id}/identity/requests/{identity_request_id}
     // The identity_request_id is a KRN (e.g., krn:partner:eu1:test:identity:request:...)
-    // We need to URL encode each path segment, but the KRN should be encoded as a whole
-    // Try both encoded and unencoded to see which works
+    // Account ID should be used as-is (simple string), identity_request_id KRN needs URL encoding for colons
     const encodedIdentityRequestId = encodeURIComponent(identityRequestId);
-    const apiUrl = `${KLARNA_CONFIG.apiUrl}/v2/accounts/${encodeURIComponent(accountId)}/identity/requests/${encodedIdentityRequestId}`;
+    const apiUrl = `${KLARNA_CONFIG.apiUrl}/v2/accounts/${accountId}/identity/requests/${encodedIdentityRequestId}`;
     
     console.log('Fetching from Klarna API:', apiUrl);
     console.log('Identity Request ID (raw):', identityRequestId);
