@@ -221,9 +221,19 @@ app.get('/api/klarna/identity/request/:identityRequestId', async (req, res) => {
   }
 });
 
+// Test route to verify API routing works
+app.get('/api/test', (req, res) => {
+  res.json({ message: 'API routes are working!', path: req.path, url: req.url });
+});
+
 // API endpoint for Klarna callback (after user completes identity flow)
 app.get('/api/klarna/callback', async (req, res) => {
   try {
+    console.log('=== CALLBACK ROUTE HIT ===');
+    console.log('Request path:', req.path);
+    console.log('Request URL:', req.url);
+    console.log('Request query:', req.query);
+    
     const { identity_request_id, state } = req.query;
     
     if (!identity_request_id) {
@@ -244,6 +254,7 @@ app.get('/api/klarna/callback', async (req, res) => {
     res.redirect(redirectUrl);
   } catch (error) {
     console.error('Klarna callback error:', error);
+    console.error('Error stack:', error.stack);
     res.redirect('/?error=callback_failed');
   }
 });
