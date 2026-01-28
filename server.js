@@ -344,6 +344,15 @@ app.all('/api/klarna/callback', async (req, res) => {
   }
 });
 
+// Debug: Log all unmatched routes before static files
+app.use((req, res, next) => {
+  // Only log if it's not a static file request
+  if (!req.path.match(/\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$/)) {
+    console.log('Unmatched route:', req.method, req.path, req.url, req.query);
+  }
+  next();
+});
+
 // Serve static files LAST - after ALL API routes are defined
 // This ensures /api/* routes are handled by Express, not static files
 app.use(express.static(path.join(__dirname, 'src')));
