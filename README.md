@@ -117,9 +117,12 @@ To add your Klarna API credentials to your Vercel deployment:
 
    | Variable Name | Value | Environment |
    |--------------|-------|-------------|
-   | `KLARNA_CLIENT_ID` | Your Klarna Client ID | Production, Preview, Development |
-   | `KLARNA_CLIENT_SECRET` | Your Klarna Client Secret | Production, Preview, Development |
-   | `KLARNA_ENVIRONMENT` | `sandbox` or `production` | Production, Preview, Development |
+   | `KLARNA_USER_NAME` | Your Klarna Username (Client ID) | Production, Preview, Development |
+   | `KLARNA_PASSWORD` | Your Klarna API Key (Client Secret) | Production, Preview, Development |
+   | `KLARNA_BASE_URL` | `https://api-global.test.klarna.com` (test) or `https://api-global.klarna.com` (prod) | Production, Preview, Development |
+   | `KLARNA_ACCOUNT_ID` | Your Klarna Account ID (e.g., `krn:partner:global:account:test:MI5RSLGHURL`) | Production, Preview, Development |
+   | `KLARNA_RETURN_URL` | Your callback URL (e.g., `https://your-site.vercel.app`) | Production, Preview, Development |
+   | `KLARNA_CUSTOMER_REGION` | (Optional) Customer region KRN (default: `krn:partner:eu1:region`) | Production, Preview, Development |
 
 4. **For Each Variable:**
    - Click **Add New**
@@ -142,9 +145,12 @@ For local development, create a `.env` file in the root directory:
 cp .env.example .env
 
 # Edit .env and add your credentials
-KLARNA_CLIENT_ID=your_klarna_client_id_here
-KLARNA_CLIENT_SECRET=your_klarna_client_secret_here
-KLARNA_ENVIRONMENT=sandbox
+KLARNA_USER_NAME=your_klarna_username_here
+KLARNA_PASSWORD=your_klarna_api_key_here
+KLARNA_BASE_URL=https://api-global.test.klarna.com
+KLARNA_ACCOUNT_ID=krn:partner:global:account:test:YOUR_ACCOUNT_ID
+KLARNA_RETURN_URL=http://localhost:3000
+KLARNA_CUSTOMER_REGION=krn:partner:eu1:region
 ```
 
 **Note:** The `.env` file is already in `.gitignore` and will not be committed to git.
@@ -154,8 +160,9 @@ KLARNA_ENVIRONMENT=sandbox
 1. Sign up for a Klarna Partner account at [Klarna Partner Portal](https://www.klarna.com/partners/)
 2. Navigate to the Developer/API section
 3. Create a new application
-4. Copy your Client ID and Client Secret
-5. Use the sandbox environment for testing
+4. Copy your Username (Client ID) and API Key (Client Secret)
+5. Get your Account ID from the Klarna dashboard
+6. Use the sandbox environment (`https://api-global.test.klarna.com`) for testing
 
 ## Age Verification Flow
 
