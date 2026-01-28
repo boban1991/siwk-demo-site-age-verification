@@ -2,7 +2,11 @@
 const VERIFICATION_KEY = 'age_verified';
 const VERIFICATION_TIMESTAMP_KEY = 'age_verified_timestamp';
 const CUSTOMER_PROFILE_KEY = 'klarna_customer_profile';
+const CUSTOMER_PROFILE_SESSION_KEY = 'klarna_customer_profile_session';
 const VERIFICATION_EXPIRY_HOURS = 24; // Verification expires after 24 hours
+
+// Global variable to store customer profile (as backup)
+let globalCustomerProfile = null;
 
 // Cart Management
 const CART_KEY = 'pharmacy_cart';
@@ -161,9 +165,18 @@ function proceedToCheckout() {
         if (checkoutTotal) checkoutTotal.textContent = `$${subtotal.toFixed(2)}`;
         
         // Get and display customer profile data if available
-        const customerProfile = getStoredCustomerProfile();
         console.log('=== Checkout: Customer Profile Debug ===');
-        console.log('Stored customer profile:', customerProfile);
+        console.log('Global profile:', globalCustomerProfile);
+        console.log('localStorage key exists:', !!localStorage.getItem(CUSTOMER_PROFILE_KEY));
+        console.log('sessionStorage key exists:', !!sessionStorage.getItem(CUSTOMER_PROFILE_SESSION_KEY));
+        
+        const customerProfile = getStoredCustomerProfile();
+        console.log('Retrieved customer profile:', customerProfile);
+        console.log('Profile type:', typeof customerProfile);
+        console.log('Profile is object:', customerProfile && typeof customerProfile === 'object');
+        if (customerProfile) {
+            console.log('Profile keys:', Object.keys(customerProfile));
+        }
         
         const customerDataSection = document.getElementById('checkout-customer-data');
         const customerProfileData = document.getElementById('checkout-profile-data');
@@ -172,20 +185,27 @@ function proceedToCheckout() {
         console.log('Customer profile data element found:', !!customerProfileData);
         
         if (customerDataSection && customerProfileData) {
-            if (customerProfile) {
+            if (customerProfile && typeof customerProfile === 'object') {
                 const profileHTML = formatCustomerProfileForCheckout(customerProfile);
                 console.log('Generated profile HTML:', profileHTML);
                 console.log('Profile HTML length:', profileHTML.length);
                 
-                customerProfileData.innerHTML = profileHTML;
-                customerDataSection.style.display = 'block';
-                console.log('Customer profile section displayed');
+                if (profileHTML && profileHTML.length > 0) {
+                    customerProfileData.innerHTML = profileHTML;
+                    customerDataSection.style.display = 'block';
+                    console.log('✅ Customer profile section displayed with content');
+                } else {
+                    console.warn('⚠️ Profile HTML is empty, showing fallback message');
+                    customerProfileData.innerHTML = '<p style="color: var(--text-secondary); padding: 20px;">Customer profile data is available but could not be formatted. Check console for details.</p>';
+                    customerDataSection.style.display = 'block';
+                }
             } else {
-                console.log('No customer profile found, hiding section');
+                console.log('No valid customer profile found, hiding section');
+                console.log('Profile value:', customerProfile);
                 customerDataSection.style.display = 'none';
             }
         } else {
-            console.error('Missing elements: customerDataSection=', !!customerDataSection, 'customerProfileData=', !!customerProfileData);
+            console.error('❌ Missing elements: customerDataSection=', !!customerDataSection, 'customerProfileData=', !!customerProfileData);
         }
         
         // Show checkout screen
@@ -348,11 +368,17 @@ function setVerificationStatus(verified, customerProfile = null) {
         localStorage.setItem(VERIFICATION_TIMESTAMP_KEY, new Date().getTime().toString());
         if (customerProfile) {
             console.log('Storing customer profile to localStorage:', customerProfile);
-            localStorage.setItem(CUSTOMER_PROFILE_KEY, JSON.stringify(customerProfile));
-            console.log('Customer profile stored successfully');
+            const profileJson = JSON.stringify(customerProfile);
+            localStorage.setItem(CUSTOMER_PROFILE_KEY, profileJson);
+            sessionStorage.setItem(CUSTOMER_PROFILE_SESSION_KEY, profileJson);
+            globalCustomerProfile = customerProfile;
+            console.log('Customer profile stored successfully (localStorage, sessionStorage, and global)');
             // Verify it was stored
             const stored = localStorage.getItem(CUSTOMER_PROFILE_KEY);
-            console.log('Verification: Stored profile exists:', !!stored);
+            const storedSession = sessionStorage.getItem(CUSTOMER_PROFILE_SESSION_KEY);
+            console.log('Verification: Stored profile exists in localStorage:', !!stored);
+            console.log('Verification: Stored profile exists in sessionStorage:', !!storedSession);
+            console.log('Verification: Global profile exists:', !!globalCustomerProfile);
         } else {
             console.warn('No customer profile provided to store');
         }
@@ -360,26 +386,50 @@ function setVerificationStatus(verified, customerProfile = null) {
         localStorage.removeItem(VERIFICATION_KEY);
         localStorage.removeItem(VERIFICATION_TIMESTAMP_KEY);
         localStorage.removeItem(CUSTOMER_PROFILE_KEY);
+        sessionStorage.removeItem(CUSTOMER_PROFILE_SESSION_KEY);
+        globalCustomerProfile = null;
     }
 }
 
-// Get stored customer profile
+// Get stored customer profile (tries multiple sources)
 function getStoredCustomerProfile() {
+    // Try global variable first (fastest)
+    if (globalCustomerProfile) {
+        console.log('Retrieved customer profile from global variable');
+        return globalCustomerProfile;
+    }
+    
+    // Try sessionStorage (persists across page navigation)
+    try {
+        const sessionJson = sessionStorage.getItem(CUSTOMER_PROFILE_SESSION_KEY);
+        if (sessionJson) {
+            const parsed = JSON.parse(sessionJson);
+            globalCustomerProfile = parsed; // Cache in global
+            console.log('Retrieved customer profile from sessionStorage');
+            return parsed;
+        }
+    } catch (e) {
+        console.error('Error parsing customer profile from sessionStorage:', e);
+    }
+    
+    // Try localStorage (persists across sessions)
     try {
         const profileJson = localStorage.getItem(CUSTOMER_PROFILE_KEY);
         console.log('Retrieving customer profile from localStorage');
-        console.log('Raw stored value:', profileJson);
+        console.log('Raw stored value:', profileJson ? 'exists' : 'null');
         if (profileJson) {
             const parsed = JSON.parse(profileJson);
+            globalCustomerProfile = parsed; // Cache in global
             console.log('Parsed customer profile:', parsed);
             return parsed;
         }
         console.log('No customer profile found in localStorage');
-        return null;
     } catch (e) {
         console.error('Error parsing stored customer profile:', e);
-        return null;
     }
+    
+    console.log('No customer profile found in any storage location');
+    return null;
 }
 
 // Initialize Klarna Identity API flow
