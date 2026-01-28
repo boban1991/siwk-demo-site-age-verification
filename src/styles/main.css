@@ -1585,14 +1585,16 @@ body {
     top: 0;
     left: 0;
     width: 100%;
-    height: 100%;
+    height: 100vh;
     background: linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 100%);
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
     z-index: 10001;
-    padding: 20px;
+    padding: 40px 20px;
     overflow-y: auto;
+    overflow-x: hidden;
+    box-sizing: border-box;
 }
 
 .success-screen.hidden {
@@ -1602,23 +1604,26 @@ body {
 .success-content {
     background: var(--bg-card);
     border-radius: 24px;
-    padding: 48px;
+    padding: 56px 48px;
     max-width: 900px;
     width: 100%;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
     border: 1px solid var(--border-color);
     animation: slideUp 0.5s ease-out;
-    margin: 20px 0;
+    margin: 0 auto;
+    min-height: fit-content;
+    box-sizing: border-box;
 }
 
 .success-header {
     text-align: center;
-    margin-bottom: 48px;
+    margin-bottom: 40px;
     position: relative;
+    padding-top: 0;
 }
 
 .success-icon-wrapper {
-    margin-bottom: 24px;
+    margin-bottom: 28px;
     display: flex;
     justify-content: center;
     animation: scaleIn 0.5s ease-out 0.2s both;
@@ -1629,7 +1634,7 @@ body {
 }
 
 .success-header h1 {
-    font-size: 2.5rem;
+    font-size: 2.25rem;
     font-weight: 700;
     margin-bottom: 12px;
     color: var(--text-primary);
@@ -1637,12 +1642,14 @@ body {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    line-height: 1.2;
 }
 
 .success-subtitle {
     color: var(--text-secondary);
     font-size: 1.125rem;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
+    line-height: 1.5;
 }
 
 .verification-badge-large {
@@ -1652,11 +1659,11 @@ body {
     background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);
     border: 2px solid var(--success-color);
     color: var(--success-color);
-    padding: 12px 24px;
+    padding: 10px 20px;
     border-radius: 50px;
     font-weight: 600;
-    font-size: 1rem;
-    margin-top: 8px;
+    font-size: 0.95rem;
+    margin-top: 12px;
 }
 
 .verification-badge-large svg {
@@ -1665,12 +1672,12 @@ body {
 }
 
 .customer-data {
-    margin-bottom: 40px;
+    margin-bottom: 36px;
 }
 
 .section-divider {
     text-align: center;
-    margin: 32px 0 24px;
+    margin: 0 0 28px;
     position: relative;
 }
 
@@ -1712,12 +1719,13 @@ body {
     background: var(--bg-darker);
     border: 2px solid var(--border-color);
     border-radius: 16px;
-    padding: 24px;
+    padding: 20px 24px;
     display: flex;
     align-items: flex-start;
     gap: 20px;
     position: relative;
     transition: all 0.3s ease;
+    margin-bottom: 0;
 }
 
 .data-item:hover {
@@ -1812,8 +1820,8 @@ body {
     background: linear-gradient(135deg, rgba(37, 99, 235, 0.05) 0%, rgba(37, 99, 235, 0.02) 100%);
     border: 1px solid rgba(37, 99, 235, 0.2);
     border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 32px;
+    padding: 18px 20px;
+    margin-bottom: 28px;
 }
 
 .info-item {
@@ -1836,8 +1844,9 @@ body {
     gap: 16px;
     justify-content: center;
     flex-wrap: wrap;
-    padding-top: 24px;
+    padding-top: 28px;
     border-top: 1px solid var(--border-color);
+    margin-top: 0;
 }
 
 .success-actions .btn-large {
@@ -1959,8 +1968,17 @@ body {
         grid-template-columns: 1fr;
     }
     
+    .success-screen {
+        padding: 20px 16px;
+    }
+    
     .success-content {
-        padding: 32px 24px;
+        padding: 40px 24px;
+        border-radius: 20px;
+    }
+    
+    .success-header {
+        margin-bottom: 32px;
     }
     
     .success-header h1 {
@@ -1971,8 +1989,21 @@ body {
         font-size: 1rem;
     }
     
+    .verification-badge-large {
+        padding: 8px 16px;
+        font-size: 0.875rem;
+    }
+    
+    .customer-data {
+        margin-bottom: 28px;
+    }
+    
+    .section-divider {
+        margin-bottom: 20px;
+    }
+    
     .data-item {
-        padding: 20px;
+        padding: 18px 20px;
         flex-direction: column;
         gap: 16px;
     }
