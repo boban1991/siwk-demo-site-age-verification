@@ -21,7 +21,7 @@ const KLARNA_CONFIG = {
   accountId: process.env.KLARNA_ACCOUNT_ID,
   returnUrl: process.env.KLARNA_RETURN_URL || (process.env.VERCEL_URL 
     ? (process.env.VERCEL_URL.startsWith('http') ? process.env.VERCEL_URL : `https://${process.env.VERCEL_URL}`)
-    : 'https://siwk-kn-demo.vercel.app'),
+    : 'https://siwk-demo-site-age-verification.vercel.app'),
   customerRegion: process.env.KLARNA_CUSTOMER_REGION || 'krn:partner:eu1:region'
 };
 
@@ -56,6 +56,70 @@ app.get('/api/klarna/config', (req, res) => {
     apiUrl: KLARNA_CONFIG.apiUrl,
     // Don't expose credentials
   });
+});
+
+// IMPORTANT: Callback route must be defined BEFORE the identity/request route
+// to ensure it's matched correctly
+// API endpoint for Klarna callback (after user completes identity flow)
+app.all('/api/klarna/callback', async (req, res) => {
+  try {
+    console.log('=== CALLBACK ROUTE HIT ===');
+    console.log('Method:', req.method);
+    console.log('Request path:', req.path);
+    console.log('Request URL:', req.url);
+    console.log('Request originalUrl:', req.originalUrl);
+    console.log('Request query:', req.query);
+    console.log('Request query string:', req.url.split('?')[1]);
+    console.log('Request headers:', JSON.stringify(req.headers, null, 2));
+    
+    // Parse query parameters manually if Express didn't parse them correctly
+    let identity_request_id = req.query.identity_request_id;
+    let state = req.query.state;
+    
+    // If query params are missing, try parsing from URL manually
+    if (!identity_request_id && req.url.includes('identity_request_id=')) {
+      const urlParams = new URLSearchParams(req.url.split('?')[1] || '');
+      identity_request_id = urlParams.get('identity_request_id');
+      state = urlParams.get('state') || state;
+      console.log('Manually parsed identity_request_id:', identity_request_id);
+      console.log('Manually parsed state:', state);
+    }
+    
+    if (!identity_request_id) {
+      console.error('Missing identity_request_id in callback');
+      console.error('Full request details:', {
+        method: req.method,
+        path: req.path,
+        url: req.url,
+        originalUrl: req.originalUrl,
+        query: req.query,
+        queryString: req.url.split('?')[1]
+      });
+      // Return JSON error instead of redirect for debugging
+      return res.status(400).json({ 
+        error: 'Missing identity_request_id',
+        receivedQuery: req.query,
+        receivedUrl: req.url,
+        parsedQueryString: req.url.split('?')[1]
+      });
+    }
+
+    console.log('Klarna callback received:', { identity_request_id, state });
+    
+    // URL encode the identity_request_id (it contains colons and other special chars)
+    const encodedId = encodeURIComponent(identity_request_id);
+    const encodedState = state ? encodeURIComponent(state) : 'completed';
+    
+    // Redirect to home page with identity request ID
+    // The frontend will fetch the identity request data and show success screen
+    const redirectUrl = `/?identity_request_id=${encodedId}&state=${encodedState}`;
+    console.log('Redirecting to:', redirectUrl);
+    res.redirect(redirectUrl);
+  } catch (error) {
+    console.error('Klarna callback error:', error);
+    console.error('Error stack:', error.stack);
+    res.redirect('/?error=callback_failed');
+  }
 });
 
 // API endpoint to create Klarna Identity Request
@@ -300,69 +364,6 @@ app.get('/api/klarna/test', (req, res) => {
     path: req.path, 
     url: req.url 
   });
-});
-
-// API endpoint for Klarna callback (after user completes identity flow)
-// Handle both GET and any method to be safe
-app.all('/api/klarna/callback', async (req, res) => {
-  try {
-    console.log('=== CALLBACK ROUTE HIT ===');
-    console.log('Method:', req.method);
-    console.log('Request path:', req.path);
-    console.log('Request URL:', req.url);
-    console.log('Request originalUrl:', req.originalUrl);
-    console.log('Request query:', req.query);
-    console.log('Request query string:', req.url.split('?')[1]);
-    console.log('Request headers:', JSON.stringify(req.headers, null, 2));
-    
-    // Parse query parameters manually if Express didn't parse them correctly
-    let identity_request_id = req.query.identity_request_id;
-    let state = req.query.state;
-    
-    // If query params are missing, try parsing from URL manually
-    if (!identity_request_id && req.url.includes('identity_request_id=')) {
-      const urlParams = new URLSearchParams(req.url.split('?')[1] || '');
-      identity_request_id = urlParams.get('identity_request_id');
-      state = urlParams.get('state') || state;
-      console.log('Manually parsed identity_request_id:', identity_request_id);
-      console.log('Manually parsed state:', state);
-    }
-    
-    if (!identity_request_id) {
-      console.error('Missing identity_request_id in callback');
-      console.error('Full request details:', {
-        method: req.method,
-        path: req.path,
-        url: req.url,
-        originalUrl: req.originalUrl,
-        query: req.query,
-        queryString: req.url.split('?')[1]
-      });
-      // Return JSON error instead of redirect for debugging
-      return res.status(400).json({ 
-        error: 'Missing identity_request_id',
-        receivedQuery: req.query,
-        receivedUrl: req.url,
-        parsedQueryString: req.url.split('?')[1]
-      });
-    }
-
-    console.log('Klarna callback received:', { identity_request_id, state });
-    
-    // URL encode the identity_request_id (it contains colons and other special chars)
-    const encodedId = encodeURIComponent(identity_request_id);
-    const encodedState = state ? encodeURIComponent(state) : 'completed';
-    
-    // Redirect to home page with identity request ID
-    // The frontend will fetch the identity request data and show success screen
-    const redirectUrl = `/?identity_request_id=${encodedId}&state=${encodedState}`;
-    console.log('Redirecting to:', redirectUrl);
-    res.redirect(redirectUrl);
-  } catch (error) {
-    console.error('Klarna callback error:', error);
-    console.error('Error stack:', error.stack);
-    res.redirect('/?error=callback_failed');
-  }
 });
 
 // Debug: Log all unmatched routes before static files
