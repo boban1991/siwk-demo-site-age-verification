@@ -84,9 +84,7 @@ app.post('/api/klarna/identity/request', async (req, res) => {
           'profile:verified:date_of_birth',
           'profile:email',
           'profile:phone',
-          'profile:locale',
           'profile:billing_address',
-          'profile:country',
           'profile:customer_id'
         ]
       },
