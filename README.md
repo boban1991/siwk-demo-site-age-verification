@@ -1,15 +1,15 @@
-# LuckyBet Casino - Online Gambling Platform
+# Northside Pharmacy (Demo) – Age Verification with Klarna
 
-A professional online gambling website with integrated Klarna age verification. Users must verify their age (18+) before accessing the gambling content.
+A pharmacy e-commerce demo site with integrated Klarna age verification. Users can browse products, add items to the cart, and must verify their age (18+) when checking out with age-restricted products.
 
 ## Features
 
-- 🎰 Professional gambling site UI with modern design
-- 🔒 Age verification modal that blocks access until verified
-- ✅ Klarna integration for secure age verification (SIWK)
-- 📱 Fully responsive design
-- 🎮 Game previews and promotions sections
-- 💾 Verification status persistence (24-hour expiry)
+- 🏥 Pharmacy demo UI: products, cart, checkout
+- 🔒 Age verification at checkout when the cart contains age-restricted products
+- ✅ Klarna Sign in with Klarna (SIWK) for age verification – **test (playground)** and **production** flows
+- 📱 Responsive layout
+- 💾 Verification status and customer profile stored (24-hour expiry for verification)
+- 📋 Success screen showing verified customer data (name, email, DOB, address)
 
 ## Setup
 
@@ -18,7 +18,7 @@ npm install
 npm start
 ```
 
-The site will be available at `http://localhost:3000`
+The site is available at `http://localhost:3000`.
 
 ## Development
 
@@ -28,160 +28,107 @@ npm run dev
 
 ## Klarna Age Verification Integration
 
-The site is set up with Klarna age verification integration. The backend API endpoints are ready in `server.js`:
+The app uses the [Klarna Identity API](https://docs.klarna.com/conversion-boosters/sign-in-with-klarna/integrate-sign-in-with-klarna/klarna-identity-api/) (Sign in with Klarna) for age verification. There are two flows:
 
-- `GET /api/klarna/config` - Returns public Klarna configuration
-- `POST /api/klarna/verify` - Initiates Klarna age verification
-- `GET /api/klarna/callback` - Handles Klarna verification callback
+- **Playground (test)** – first “Continue with Klarna” button; uses test credentials and test Klarna environment.
+- **Production** – second “Continue with Klarna” button (outline style with “Production” badge); uses production credentials and production Klarna environment.
 
-### Next Steps to Complete Integration
+### API Endpoints (in `server.js`)
 
-1. **Add your Klarna credentials** (see Environment Variables section above)
-2. **Update the API implementation** in `server.js`:
-   - Replace the placeholder code in `/api/klarna/verify` with actual Klarna API calls
-   - Update `/api/klarna/callback` to verify the session with Klarna
-   - Use the Klarna API documentation for the exact endpoints and request/response formats
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `POST /api/klarna/identity/request` | POST | Create identity request. Body: `{}` or `{ environment: 'test' }` for playground, `{ environment: 'production' }` for production. Returns `identity_request_url` to redirect the user to Klarna. |
+| `GET /api/klarna/identity/request/:id` | GET | Read identity request state and customer data. Query: `?env=production` for production. |
+| `GET /api/klarna/callback` | GET | Callback for **test** flow after Klarna redirect. |
+| `GET /api/klarna/production/callback` | GET | Callback for **production** flow after Klarna redirect. |
+| `GET /api/klarna/status` | GET | Debug: shows which envs have credentials configured (no secrets). |
 
-3. **Test the integration**:
-   - Use sandbox credentials first
-   - Test the full verification flow
-   - Verify the callback handling works correctly
+### Age Verification Flow
 
-The frontend is already configured to call these API endpoints. Once you add your credentials and complete the API implementation, the integration will be fully functional.
+1. User browses products and adds items to the cart (some products are age-restricted).
+2. User clicks “Proceed to Checkout” in the cart.
+3. If the cart contains age-restricted products and the user is not yet verified, the age verification modal is shown.
+4. User clicks “Continue with Klarna” (playground or production). The app creates an identity request and redirects to Klarna.
+5. After completing verification on Klarna, the user is redirected back to the site (callback), then to a success screen with verified customer data.
+6. User can continue to checkout; verified profile data is shown on the checkout screen when available.
 
 ## Deployment to Vercel
 
-### Option 1: Using Vercel CLI
+### Option 1: Vercel CLI
 
 ```bash
-# Install Vercel CLI globally
 npm i -g vercel
-
-# Deploy
 vercel
-
-# For production
-vercel --prod
+vercel --prod   # production
 ```
 
-### Option 2: Using GitHub Integration
+### Option 2: GitHub Integration
 
-1. Push your code to a GitHub repository
-2. Go to [vercel.com](https://vercel.com)
-3. Click "New Project"
-4. Import your GitHub repository
-5. Vercel will automatically detect the configuration and deploy
-
-### Option 3: Using Vercel Dashboard
-
-1. Go to [vercel.com](https://vercel.com)
-2. Click "New Project"
-3. Upload your project folder
-4. Vercel will automatically configure and deploy
-
-The `vercel.json` file is already configured for Node.js/Express deployment.
+1. Push the repo to GitHub.
+2. In [vercel.com](https://vercel.com), create a new project and import the repository.
+3. Vercel will use the existing `vercel.json` (Node.js/Express).
 
 ## Project Structure
 
 ```
 .
 ├── src/
-│   ├── index.html          # Main HTML file
+│   ├── index.html          # Main HTML (pharmacy demo UI)
 │   ├── styles/
-│   │   └── main.css        # All styles
+│   │   └── main.css
 │   └── scripts/
-│       └── main.js         # Age verification & site logic
-├── server.js               # Express server
+│       └── main.js         # Cart, checkout, age verification, Klarna flow
+├── server.js               # Express server & Klarna Identity API
 ├── package.json
-├── vercel.json            # Vercel deployment config
+├── vercel.json             # Vercel rewrites to server.js
 └── README.md
 ```
 
 ## Environment Variables
 
-### Setting Up Klarna Credentials in Vercel
+### Test (playground) flow
 
-To add your Klarna API credentials to your Vercel deployment:
+| Variable | Description |
+|----------|-------------|
+| `KLARNA_USER_NAME` | Klarna username (test) |
+| `KLARNA_PASSWORD` | Klarna API key (test) |
+| `KLARNA_ACCOUNT_ID` | Klarna account ID (test) |
+| `KLARNA_BASE_URL` | Optional. Default: `https://api-global.test.klarna.com` |
+| `KLARNA_RETURN_URL` | Base URL where Klarna redirects after verification (e.g. `https://your-app.vercel.app`). Must be `https://`. |
+| `KLARNA_CUSTOMER_REGION` | Optional. Default: `krn:partner:eu1:region` |
 
-1. **Go to your Vercel Dashboard**
-   - Visit [vercel.com](https://vercel.com) and sign in
-   - Select your project (siwk-demo-site-age-verification)
+### Production flow
 
-2. **Navigate to Settings**
-   - Click on your project
-   - Go to the **Settings** tab
-   - Click on **Environment Variables** in the left sidebar
+| Variable | Description |
+|----------|-------------|
+| `KLARNA_PROD_USER_NAME` | Klarna username (production) |
+| `KLARNA_PROD_PASSWORD` | Klarna API key (production) |
+| `KLARNA_PROD_ACCOUNT_ID` | Klarna account ID (production) |
+| `KLARNA_PROD_BASE_URL` | Optional. Default: `https://api-global.klarna.com` |
+| `KLARNA_PROD_RETURN_URL` | Production base URL (e.g. `https://your-app.vercel.app`). Must be `https://`. |
+| `KLARNA_PROD_CUSTOMER_REGION` | Optional. Default: `krn:partner:eu1:region` |
 
-3. **Add Environment Variables**
-   Add the following variables:
+On Vercel, if `KLARNA_RETURN_URL` or `KLARNA_PROD_RETURN_URL` is not set, the app falls back to `VERCEL_URL` (current deployment URL). It is still recommended to set the return URLs explicitly.
 
-   | Variable Name | Value | Environment |
-   |--------------|-------|-------------|
-   | `KLARNA_USER_NAME` | Your Klarna Username (Client ID) | Production, Preview, Development |
-   | `KLARNA_PASSWORD` | Your Klarna API Key (Client Secret) | Production, Preview, Development |
-   | `KLARNA_BASE_URL` | `https://api-global.test.klarna.com` (test) or `https://api-global.klarna.com` (prod) | Production, Preview, Development |
-   | `KLARNA_ACCOUNT_ID` | Your Klarna Account ID (e.g., `krn:partner:global:account:test:MI5RSLGHURL`) | Production, Preview, Development |
-   | `KLARNA_RETURN_URL` | Your callback URL (e.g., `https://your-site.vercel.app`) | Production, Preview, Development |
-   | `KLARNA_CUSTOMER_REGION` | (Optional) Customer region KRN (default: `krn:partner:eu1:region`) | Production, Preview, Development |
+### Local development
 
-4. **For Each Variable:**
-   - Click **Add New**
-   - Enter the variable name
-   - Enter the value
-   - Select which environments to apply it to (Production, Preview, Development)
-   - Click **Save**
-
-5. **Redeploy**
-   - After adding the variables, go to the **Deployments** tab
-   - Click the three dots (⋯) on your latest deployment
-   - Click **Redeploy** to apply the new environment variables
-
-### Local Development Setup
-
-For local development, create a `.env` file in the root directory:
+Create a `.env` file (see `.env.example`):
 
 ```bash
-# Copy the example file
 cp .env.example .env
-
-# Edit .env and add your credentials
-KLARNA_USER_NAME=your_klarna_username_here
-KLARNA_PASSWORD=your_klarna_api_key_here
-KLARNA_BASE_URL=https://api-global.test.klarna.com
-KLARNA_ACCOUNT_ID=krn:partner:global:account:test:YOUR_ACCOUNT_ID
-KLARNA_RETURN_URL=http://localhost:3000
-KLARNA_CUSTOMER_REGION=krn:partner:eu1:region
+# Edit .env with your test credentials
 ```
 
-**Note:** The `.env` file is already in `.gitignore` and will not be committed to git.
+`.env` is in `.gitignore` and is not committed.
 
-### Getting Klarna Credentials
+## Medication Safety & Age-Restricted Products
 
-1. Sign up for a Klarna Partner account at [Klarna Partner Portal](https://www.klarna.com/partners/)
-2. Navigate to the Developer/API section
-3. Create a new application
-4. Copy your Username (Client ID) and API Key (Client Secret)
-5. Get your Account ID from the Klarna dashboard
-6. Use the sandbox environment (`https://api-global.test.klarna.com`) for testing
+This is a demo. For a real pharmacy or age-gated site:
 
-## Age Verification Flow
-
-1. User visits the site
-2. Age verification modal appears (blocks all content)
-3. User can verify via:
-   - **Klarna**: One-click secure verification
-   - **Manual**: Enter date of birth
-4. Upon successful verification, main site content is revealed
-5. Verification status is stored in localStorage (expires after 24 hours)
+- Comply with local regulations for age-restricted products and medication.
+- Use Klarna age verification (or equivalent) as required by your jurisdiction.
+- Follow data protection rules (e.g. GDPR) when storing or using verified customer data.
 
 ## License
 
 MIT
-
-## Responsible Gaming
-
-This is a demo site. In production, ensure compliance with:
-- Local gambling regulations
-- Age verification requirements
-- Responsible gaming practices
-- Data protection laws (GDPR, etc.)
