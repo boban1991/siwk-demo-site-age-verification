@@ -188,20 +188,24 @@ function proceedToCheckout() {
         if (orderCompleteSection) orderCompleteSection.classList.add('hidden');
         if (continueShoppingBtn) continueShoppingBtn.classList.remove('hidden');
         
-        // Customer profile (when verified)
-        const customerProfile = getStoredCustomerProfile();
+        // Customer profile: only show when user is verified (Klarna or manual DOB)
         const customerDataSection = document.getElementById('checkout-customer-data');
         const customerProfileData = document.getElementById('checkout-profile-data');
         
         if (customerDataSection && customerProfileData) {
-            if (customerProfile && typeof customerProfile === 'object') {
-                const profileHTML = formatCustomerProfileForCheckout(customerProfile);
-                if (profileHTML && profileHTML.length > 50) {
-                    customerProfileData.innerHTML = profileHTML;
-                    customerDataSection.style.display = 'block';
+            if (isVerified) {
+                const customerProfile = getStoredCustomerProfile();
+                if (customerProfile && typeof customerProfile === 'object') {
+                    const profileHTML = formatCustomerProfileForCheckout(customerProfile);
+                    if (profileHTML && profileHTML.length > 50) {
+                        customerProfileData.innerHTML = profileHTML;
+                        customerDataSection.style.display = 'block';
+                    } else {
+                        customerProfileData.innerHTML = `<pre style="font-size: 12px;">${JSON.stringify(customerProfile, null, 2)}</pre>`;
+                        customerDataSection.style.display = 'block';
+                    }
                 } else {
-                    customerProfileData.innerHTML = `<pre style="font-size: 12px;">${JSON.stringify(customerProfile, null, 2)}</pre>`;
-                    customerDataSection.style.display = 'block';
+                    customerDataSection.style.display = 'none';
                 }
             } else {
                 customerDataSection.style.display = 'none';
