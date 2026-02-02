@@ -456,15 +456,18 @@ function getStoredCustomerProfile() {
     return null;
 }
 
-// Initialize Klarna Identity API flow
-async function initiateKlarnaIdentityFlow() {
-    const klarnaVerifyBtn = document.getElementById('klarna-verify-btn');
+// Initialize Klarna Identity API flow (env: 'test' | 'production')
+async function initiateKlarnaIdentityFlow(env) {
+    const isProduction = env === 'production';
+    const klarnaVerifyBtn = document.getElementById(isProduction ? 'klarna-verify-btn-production' : 'klarna-verify-btn');
     const verificationResult = document.getElementById('verification-result');
-    
-    // Show loading state
+    const spinnerColor = isProduction ? '#1A1A1A' : 'white';
+
+    if (!klarnaVerifyBtn) return;
+
     klarnaVerifyBtn.disabled = true;
     klarnaVerifyBtn.innerHTML = `
-        <svg class="spinner" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="color: white;">
+        <svg class="spinner" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="color: ${spinnerColor};">
             <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="32" stroke-dashoffset="32">
                 <animate attributeName="stroke-dasharray" dur="2s" values="0 32;16 16;0 32;0 32" repeatCount="indefinite"/>
                 <animate attributeName="stroke-dashoffset" dur="2s" values="0;-16;-32;-32" repeatCount="indefinite"/>
@@ -472,20 +475,19 @@ async function initiateKlarnaIdentityFlow() {
         </svg>
         <span class="klarna-button-text">Creating request...</span>
         <span class="klarna-pill">Klarna</span>
+        ${isProduction ? '<span class="klarna-env-badge">Production</span>' : ''}
     `;
-    
+
     try {
-        console.log('Creating identity request...');
-        
-        // Create identity request with timeout
+        console.log('Creating identity request...', isProduction ? 'production' : 'test');
+
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-        
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
+
         const response = await fetch('/api/klarna/identity/request', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(isProduction ? { environment: 'production' } : {}),
             signal: controller.signal
         });
         
@@ -571,23 +573,25 @@ async function initiateKlarnaIdentityFlow() {
             alert(errorMessage);
         }
         
-        // Reset button
+        // Reset the button that was clicked
         klarnaVerifyBtn.disabled = false;
         klarnaVerifyBtn.innerHTML = `
             <span class="klarna-button-text">Continue with</span>
             <span class="klarna-pill">Klarna</span>
+            ${isProduction ? '<span class="klarna-env-badge">Production</span>' : ''}
         `;
     }
 }
 
-// Fetch and display identity request data
-async function fetchAndDisplayIdentityData(identityRequestId) {
+// Fetch and display identity request data (env: 'test' | 'production')
+async function fetchAndDisplayIdentityData(identityRequestId, env) {
+    const isProduction = env === 'production';
     try {
-        // URL encode the identity request ID (it may contain special characters)
         const encodedId = encodeURIComponent(identityRequestId);
-        console.log('Fetching identity data for:', identityRequestId);
-        
-        const response = await fetch(`/api/klarna/identity/request/${encodedId}`);
+        const query = isProduction ? '?env=production' : '';
+        console.log('Fetching identity data for:', identityRequestId, isProduction ? '(production)' : '(test)');
+
+        const response = await fetch(`/api/klarna/identity/request/${encodedId}${query}`);
         
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
@@ -649,8 +653,7 @@ async function fetchAndDisplayIdentityData(identityRequestId) {
         } else {
             console.log('Identity request state:', data.state, '- polling...');
             showResult(`Identity request is in state: ${data.state}. Please wait...`, 'info');
-            // Poll again after a delay if not completed
-            setTimeout(() => fetchAndDisplayIdentityData(identityRequestId), 2000);
+            setTimeout(() => fetchAndDisplayIdentityData(identityRequestId, env), 2000);
         }
     } catch (error) {
         console.error('Error fetching identity data:', error);
@@ -921,10 +924,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const state = urlParams.get('state');
     
     if (identityRequestId) {
-        console.log('Identity request ID found in URL:', identityRequestId, 'State:', state);
-        // Fetch and display identity data
-        fetchAndDisplayIdentityData(identityRequestId);
-        // Clean up URL after a short delay to ensure data is loaded
+        const env = urlParams.get('env') === 'production' ? 'production' : 'test';
+        console.log('Identity request ID found in URL:', identityRequestId, 'State:', state, 'Env:', env);
+        fetchAndDisplayIdentityData(identityRequestId, env);
         setTimeout(() => {
             window.history.replaceState({}, document.title, window.location.pathname);
         }, 100);
@@ -939,10 +941,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Age verification will be triggered during checkout if needed
     showMainContent();
     
-    // Klarna Identity API button
+    // Klarna Identity API buttons (test and production)
     const klarnaVerifyBtn = document.getElementById('klarna-verify-btn');
+    const klarnaVerifyBtnProduction = document.getElementById('klarna-verify-btn-production');
     if (klarnaVerifyBtn) {
-        klarnaVerifyBtn.addEventListener('click', initiateKlarnaIdentityFlow);
+        klarnaVerifyBtn.addEventListener('click', () => initiateKlarnaIdentityFlow('test'));
+    }
+    if (klarnaVerifyBtnProduction) {
+        klarnaVerifyBtnProduction.addEventListener('click', () => initiateKlarnaIdentityFlow('production'));
     }
     
     // Success screen buttons

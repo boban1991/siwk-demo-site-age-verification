@@ -301,6 +301,45 @@ body {
     min-width: fit-content;
 }
 
+.klarna-env-label {
+    margin: 12px 0 6px;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Production flow button: slightly different look (outline) */
+.klarna-button-production {
+    margin-top: 8px;
+    background: #FFFFFF;
+    color: #1A1A1A;
+    border: 2px solid #1A1A1A;
+    box-shadow: none;
+}
+
+.klarna-button-production .klarna-button-text,
+.klarna-button-production .klarna-pill {
+    color: #1A1A1A;
+}
+
+.klarna-button-production:hover:not(:disabled) {
+    background: #F5F5F5;
+    border-color: #1A1A1A;
+}
+
+.klarna-env-badge {
+    margin-left: 8px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    background: #E8F5E9;
+    color: #2E7D32;
+}
+
 /* Responsive adjustments */
 @media (max-width: 400px) {
     .klarna-button {

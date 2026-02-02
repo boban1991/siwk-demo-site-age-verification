@@ -14,37 +14,58 @@ app.use(express.json());
 // Klarna API Configuration (from environment variables)
 // Docs: https://docs.klarna.com/conversion-boosters/sign-in-with-klarna/integrate-sign-in-with-klarna/klarna-identity-api/
 // No SDK — we call the Identity REST API directly with HTTP Basic Auth (API key).
-const KLARNA_CONFIG = {
+// Test and production use separate credentials and callback paths.
+function buildReturnUrl(envVar, fallback) {
+  const url = process.env[envVar] || (process.env.VERCEL_URL
+    ? (process.env.VERCEL_URL.startsWith('http') ? process.env.VERCEL_URL : `https://${process.env.VERCEL_URL}`)
+    : fallback);
+  return url && url.startsWith('http') ? url : `https://${url || fallback}`;
+}
+
+const KLARNA_CONFIG_TEST = {
   username: process.env.KLARNA_USER_NAME,
   apiKey: process.env.KLARNA_PASSWORD,
   apiUrl: process.env.KLARNA_BASE_URL || 'https://api-global.test.klarna.com',
   accountId: process.env.KLARNA_ACCOUNT_ID,
-  returnUrl: (() => {
-    const url = process.env.KLARNA_RETURN_URL || (process.env.VERCEL_URL 
-      ? (process.env.VERCEL_URL.startsWith('http') ? process.env.VERCEL_URL : `https://${process.env.VERCEL_URL}`)
-      : 'https://siwk-demo-site-age-verification.vercel.app');
-    // Ensure URL always starts with https://
-    return url.startsWith('http') ? url : `https://${url}`;
-  })(),
-  customerRegion: process.env.KLARNA_CUSTOMER_REGION || 'krn:partner:eu1:region'
+  returnUrl: buildReturnUrl('KLARNA_RETURN_URL', 'https://siwk-demo-site-age-verification.vercel.app'),
+  customerRegion: process.env.KLARNA_CUSTOMER_REGION || 'krn:partner:eu1:region',
+  callbackPath: '/api/klarna/callback'
 };
+
+const KLARNA_CONFIG_PROD = {
+  username: process.env.KLARNA_PROD_USER_NAME,
+  apiKey: process.env.KLARNA_PROD_PASSWORD,
+  apiUrl: process.env.KLARNA_PROD_BASE_URL || 'https://api-global.klarna.com',
+  accountId: process.env.KLARNA_PROD_ACCOUNT_ID,
+  returnUrl: buildReturnUrl('KLARNA_PROD_RETURN_URL', process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://siwk-demo-site-age-verification.vercel.app'),
+  customerRegion: process.env.KLARNA_PROD_CUSTOMER_REGION || 'krn:partner:eu1:region',
+  callbackPath: '/api/klarna/production/callback'
+};
+
+/** @param {'test'|'production'} env */
+function getKlarnaConfig(env) {
+  return env === 'production' ? KLARNA_CONFIG_PROD : KLARNA_CONFIG_TEST;
+}
+
+// Legacy single config for any code that still references it (test only)
+const KLARNA_CONFIG = KLARNA_CONFIG_TEST;
 
 // HTTP Basic Auth: Authorization header = "Basic " + base64(username + ":" + password).
 // Identity API expects this (klarna_api_key); we do not use OAuth or any SDK.
 function buildBasicAuthHeader(username, password) {
   if (!username || !password) {
-    throw new Error('KLARNA_USER_NAME and KLARNA_PASSWORD are required');
+    throw new Error('Username and password are required for Basic Auth');
   }
   const encoded = Buffer.from(`${username}:${password}`).toString('base64');
   return `Basic ${encoded}`;
 }
 
-// Headers we send on every request to Klarna Identity API (POST/GET identity/requests).
-function klarnaApiHeaders(extra = {}) {
+/** Headers for Klarna Identity API. config = getKlarnaConfig('test'|'production'). */
+function klarnaApiHeaders(config, extra = {}) {
   return {
-    'Authorization': buildBasicAuthHeader(KLARNA_CONFIG.username, KLARNA_CONFIG.apiKey),
+    'Authorization': buildBasicAuthHeader(config.username, config.apiKey),
     'Content-Type': 'application/json',
-    'X-Klarna-Customer-Region': KLARNA_CONFIG.customerRegion,
+    'X-Klarna-Customer-Region': config.customerRegion,
     ...extra
   };
 }
@@ -114,8 +135,7 @@ app.all('/api/klarna/callback', async (req, res) => {
     const encodedId = encodeURIComponent(identity_request_id);
     const encodedState = state ? encodeURIComponent(state) : 'completed';
     
-    // Redirect to home page with identity request ID
-    // The frontend will fetch the identity request data and show success screen
+    // Redirect to home page with identity request ID (test flow; no env param)
     const redirectUrl = `/?identity_request_id=${encodedId}&state=${encodedState}`;
     console.log('Redirecting to:', redirectUrl);
     res.redirect(redirectUrl);
@@ -126,26 +146,55 @@ app.all('/api/klarna/callback', async (req, res) => {
   }
 });
 
+// Production callback: same as above but redirects with env=production so frontend uses production API
+app.all('/api/klarna/production/callback', async (req, res) => {
+  try {
+    console.log('=== PRODUCTION CALLBACK ROUTE HIT ===');
+    let identity_request_id = req.query.identity_request_id;
+    let state = req.query.state;
+    if (!identity_request_id && req.url.includes('identity_request_id=')) {
+      const urlParams = new URLSearchParams(req.url.split('?')[1] || '');
+      identity_request_id = urlParams.get('identity_request_id');
+      state = urlParams.get('state') || state;
+    }
+    if (!identity_request_id) {
+      return res.status(400).json({ error: 'Missing identity_request_id', receivedQuery: req.query });
+    }
+    const encodedId = encodeURIComponent(identity_request_id);
+    const encodedState = state ? encodeURIComponent(state) : 'completed';
+    const redirectUrl = `/?identity_request_id=${encodedId}&state=${encodedState}&env=production`;
+    console.log('Redirecting to:', redirectUrl);
+    res.redirect(redirectUrl);
+  } catch (error) {
+    console.error('Klarna production callback error:', error);
+    res.redirect('/?error=callback_failed&env=production');
+  }
+});
+
 // API endpoint to create Klarna Identity Request
+// Body: optional { environment: 'test' | 'production' }. Default: test.
 // Documentation: https://docs.klarna.com/conversion-boosters/sign-in-with-klarna/integrate-sign-in-with-klarna/klarna-identity-api/
 app.post('/api/klarna/identity/request', async (req, res) => {
   try {
-    console.log('Creating identity request...');
-    
-    if (!KLARNA_CONFIG.username || !KLARNA_CONFIG.apiKey || !KLARNA_CONFIG.accountId) {
-      console.error('Missing credentials');
-      return res.status(500).json({ 
-        error: 'Klarna credentials not configured. Please set KLARNA_USER_NAME, KLARNA_PASSWORD, and KLARNA_ACCOUNT_ID environment variables.' 
+    const env = (req.body && req.body.environment === 'production') ? 'production' : 'test';
+    const config = getKlarnaConfig(env);
+    console.log('Creating identity request...', { env });
+
+    if (!config.username || !config.apiKey || !config.accountId) {
+      const varHint = env === 'production'
+        ? 'KLARNA_PROD_USER_NAME, KLARNA_PROD_PASSWORD, KLARNA_PROD_ACCOUNT_ID'
+        : 'KLARNA_USER_NAME, KLARNA_PASSWORD, KLARNA_ACCOUNT_ID';
+      console.error('Missing credentials for', env);
+      return res.status(500).json({
+        error: `Klarna ${env} credentials not configured. Please set ${varHint} environment variables.`
       });
     }
 
-    // Generate idempotency key (UUID v4) - required header
     const idempotencyKey = crypto.randomUUID();
-    
-    // Use account ID as-is from environment variable
-    const accountId = KLARNA_CONFIG.accountId;
-    
-    // Create identity request according to official documentation
+    const accountId = config.accountId;
+    const baseUrl = config.returnUrl.replace(/\/$/, '');
+    const returnUrl = `${baseUrl}${config.callbackPath}?identity_request_id={klarna.identity_request.id}&state={klarna.identity_request.state}`;
+
     const identityRequest = {
       request_customer_token: {
         scopes: [
@@ -160,23 +209,19 @@ app.post('/api/klarna/identity/request', async (req, res) => {
       },
       customer_interaction_config: {
         method: 'HANDOVER',
-        return_url: `${KLARNA_CONFIG.returnUrl.replace(/\/$/, '')}/api/klarna/callback?identity_request_id={klarna.identity_request.id}&state={klarna.identity_request.state}`
+        return_url
       }
     };
 
-    const apiUrl = `${KLARNA_CONFIG.apiUrl}/v2/accounts/${accountId}/identity/requests`;
+    const apiUrl = `${config.apiUrl}/v2/accounts/${accountId}/identity/requests`;
     console.log('Making request to:', apiUrl);
-    console.log('Return URL being sent to Klarna:', identityRequest.customer_interaction_config.return_url);
-    console.log('Request body:', JSON.stringify(identityRequest, null, 2));
+    console.log('Return URL:', returnUrl);
 
-    console.log('Using Basic Auth with API key and X-Klarna-Customer-Region:', KLARNA_CONFIG.customerRegion);
-
-    // Make API call to create identity request
     const response = await fetch(apiUrl, {
       method: 'POST',
-      headers: klarnaApiHeaders({
+      headers: klarnaApiHeaders(config, {
         'Klarna-Idempotency-Key': idempotencyKey,
-        'Partner-Correlation-Id': `partner-${Date.now()}`
+        'Partner-Correlation-Id': `partner-${env}-${Date.now()}`
       }),
       body: JSON.stringify(identityRequest)
     });
@@ -280,38 +325,32 @@ app.post('/api/klarna/identity/request', async (req, res) => {
 });
 
 // API endpoint to read identity request state
+// Query: optional env=production to use production credentials.
 // Documentation: https://docs.klarna.com/conversion-boosters/sign-in-with-klarna/integrate-sign-in-with-klarna/klarna-identity-api/
 app.get('/api/klarna/identity/request/:identityRequestId', async (req, res) => {
   try {
     const { identityRequestId } = req.params;
-    
-    if (!KLARNA_CONFIG.username || !KLARNA_CONFIG.apiKey || !KLARNA_CONFIG.accountId) {
-      return res.status(500).json({ 
-        error: 'Klarna credentials not configured. Please set KLARNA_USER_NAME, KLARNA_PASSWORD, and KLARNA_ACCOUNT_ID'
+    const env = req.query.env === 'production' ? 'production' : 'test';
+    const config = getKlarnaConfig(env);
+
+    if (!config.username || !config.apiKey || !config.accountId) {
+      const varHint = env === 'production'
+        ? 'KLARNA_PROD_USER_NAME, KLARNA_PROD_PASSWORD, KLARNA_PROD_ACCOUNT_ID'
+        : 'KLARNA_USER_NAME, KLARNA_PASSWORD, KLARNA_ACCOUNT_ID';
+      return res.status(500).json({
+        error: `Klarna ${env} credentials not configured. Please set ${varHint}.`
       });
     }
 
-    // Use account ID as-is from environment variable
-    const accountId = KLARNA_CONFIG.accountId;
+    const accountId = config.accountId;
+    console.log('Reading identity request:', identityRequestId, 'env:', env);
 
-    console.log('Reading identity request:', identityRequestId);
-    console.log('Account ID:', accountId);
-    console.log('API URL:', KLARNA_CONFIG.apiUrl);
-    console.log('Using Basic Auth with X-Klarna-Customer-Region:', KLARNA_CONFIG.customerRegion);
-
-    // According to Klarna docs: GET /v2/accounts/{partner_account_id}/identity/requests/{identity_request_id}
-    // The identity_request_id is a KRN (e.g., krn:partner:eu1:test:identity:request:...)
-    // Account ID should be used as-is (simple string), identity_request_id KRN needs URL encoding for colons
     const encodedIdentityRequestId = encodeURIComponent(identityRequestId);
-    const apiUrl = `${KLARNA_CONFIG.apiUrl}/v2/accounts/${accountId}/identity/requests/${encodedIdentityRequestId}`;
-    
-    console.log('Fetching from Klarna API:', apiUrl);
-    console.log('Identity Request ID (raw):', identityRequestId);
-    console.log('Identity Request ID (encoded):', encodedIdentityRequestId);
+    const apiUrl = `${config.apiUrl}/v2/accounts/${accountId}/identity/requests/${encodedIdentityRequestId}`;
 
     const response = await fetch(apiUrl, {
       method: 'GET',
-      headers: klarnaApiHeaders()
+      headers: klarnaApiHeaders(config)
     });
 
     if (!response.ok) {
