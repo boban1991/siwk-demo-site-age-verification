@@ -487,7 +487,7 @@ async function initiateKlarnaIdentityFlow(env) {
         const response = await fetch('/api/klarna/identity/request', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(isProduction ? { environment: 'production' } : {}),
+            body: JSON.stringify(isProduction ? { environment: 'production' } : { environment: 'test' }),
             signal: controller.signal
         });
         

@@ -11,10 +11,11 @@ app.use(express.json());
 // API routes must be defined BEFORE static file serving
 // This ensures /api/* routes are handled by Express, not static files
 
-// Klarna API Configuration (from environment variables)
+// Klarna Identity API Configuration (from environment variables)
 // Docs: https://docs.klarna.com/conversion-boosters/sign-in-with-klarna/integrate-sign-in-with-klarna/klarna-identity-api/
-// No SDK — we call the Identity REST API directly with HTTP Basic Auth (API key).
-// Test and production use separate credentials and callback paths.
+// Base URLs per docs: Production https://api-global.klarna.com | Test https://api-global.test.klarna.com
+// Auth: Basic Auth (username:api_key base64). Required headers: Klarna-Idempotency-Key, Content-Type.
+// Template variables in return_url per docs: {klarna.identity_request.id}, {klarna.identity_request.state}
 function buildReturnUrl(envVar, fallback) {
   const url = process.env[envVar] || (process.env.VERCEL_URL
     ? (process.env.VERCEL_URL.startsWith('http') ? process.env.VERCEL_URL : `https://${process.env.VERCEL_URL}`)
@@ -25,7 +26,7 @@ function buildReturnUrl(envVar, fallback) {
 const KLARNA_CONFIG_TEST = {
   username: process.env.KLARNA_USER_NAME,
   apiKey: process.env.KLARNA_PASSWORD,
-  apiUrl: process.env.KLARNA_BASE_URL || 'https://api-global.test.klarna.com',
+  apiUrl: (process.env.KLARNA_BASE_URL || 'https://api-global.test.klarna.com').replace(/\/$/, ''),
   accountId: process.env.KLARNA_ACCOUNT_ID,
   returnUrl: buildReturnUrl('KLARNA_RETURN_URL', 'https://siwk-demo-site-age-verification.vercel.app'),
   customerRegion: process.env.KLARNA_CUSTOMER_REGION || 'krn:partner:eu1:region',
@@ -35,7 +36,7 @@ const KLARNA_CONFIG_TEST = {
 const KLARNA_CONFIG_PROD = {
   username: process.env.KLARNA_PROD_USER_NAME,
   apiKey: process.env.KLARNA_PROD_PASSWORD,
-  apiUrl: process.env.KLARNA_PROD_BASE_URL || 'https://api-global.klarna.com',
+  apiUrl: (process.env.KLARNA_PROD_BASE_URL || 'https://api-global.klarna.com').replace(/\/$/, ''),
   accountId: process.env.KLARNA_PROD_ACCOUNT_ID,
   returnUrl: buildReturnUrl('KLARNA_PROD_RETURN_URL', process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://siwk-demo-site-age-verification.vercel.app'),
   customerRegion: process.env.KLARNA_PROD_CUSTOMER_REGION || 'krn:partner:eu1:region',
@@ -80,6 +81,30 @@ app.get('/api/klarna/config', (req, res) => {
   res.json({
     apiUrl: KLARNA_CONFIG.apiUrl,
     // Don't expose credentials
+  });
+});
+
+// Debug: check which Klarna envs have credentials (no secrets)
+app.get('/api/klarna/status', (req, res) => {
+  const test = getKlarnaConfig('test');
+  const prod = getKlarnaConfig('production');
+  res.json({
+    test: {
+      configured: !!(test.username && test.apiKey && test.accountId),
+      hasUsername: !!test.username,
+      hasApiKey: !!test.apiKey,
+      hasAccountId: !!test.accountId,
+      apiUrl: test.apiUrl,
+      returnUrl: test.returnUrl ? `${test.returnUrl.replace(/\/$/, '')}${test.callbackPath}` : null
+    },
+    production: {
+      configured: !!(prod.username && prod.apiKey && prod.accountId),
+      hasUsername: !!prod.username,
+      hasApiKey: !!prod.apiKey,
+      hasAccountId: !!prod.accountId,
+      apiUrl: prod.apiUrl,
+      returnUrl: prod.returnUrl ? `${prod.returnUrl.replace(/\/$/, '')}${prod.callbackPath}` : null
+    }
   });
 });
 
@@ -176,9 +201,13 @@ app.all('/api/klarna/production/callback', async (req, res) => {
 // Documentation: https://docs.klarna.com/conversion-boosters/sign-in-with-klarna/integrate-sign-in-with-klarna/klarna-identity-api/
 app.post('/api/klarna/identity/request', async (req, res) => {
   try {
+    console.log('[Identity] POST /api/klarna/identity/request received', { body: req.body });
     const env = (req.body && req.body.environment === 'production') ? 'production' : 'test';
+    if (!req.body || typeof req.body !== 'object') {
+      console.log('[Identity] No/invalid body, using env:', env);
+    }
     const config = getKlarnaConfig(env);
-    console.log('Creating identity request...', { env });
+    console.log('[Identity] Creating identity request', { env, hasUsername: !!config.username, hasApiKey: !!config.apiKey, hasAccountId: !!config.accountId, apiUrl: config.apiUrl });
 
     if (!config.username || !config.apiKey || !config.accountId) {
       const varHint = env === 'production'
@@ -214,8 +243,7 @@ app.post('/api/klarna/identity/request', async (req, res) => {
     };
 
     const apiUrl = `${config.apiUrl}/v2/accounts/${accountId}/identity/requests`;
-    console.log('Making request to:', apiUrl);
-    console.log('Return URL:', returnUrl);
+    console.log('[Identity] Calling Klarna API', { env, apiUrl, returnUrl });
 
     const response = await fetch(apiUrl, {
       method: 'POST',
@@ -225,8 +253,8 @@ app.post('/api/klarna/identity/request', async (req, res) => {
       }),
       body: JSON.stringify(identityRequest)
     });
-    
-    console.log('Response status:', response.status);
+
+    console.log('[Identity] Klarna API response', { env, status: response.status, ok: response.ok });
 
     if (!response.ok) {
       const errorText = await response.text();
