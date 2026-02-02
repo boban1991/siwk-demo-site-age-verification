@@ -260,7 +260,7 @@ app.post('/api/klarna/identity/request', async (req, res) => {
       },
       customer_interaction_config: {
         method: 'HANDOVER',
-        return_url
+        return_url: returnUrl
       }
     };
 
