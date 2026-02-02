@@ -1441,6 +1441,7 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
+    height: 100dvh;
     background: linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 100%);
     display: flex;
     align-items: center;
@@ -1448,6 +1449,8 @@ body {
     z-index: 10002;
     padding: 20px;
     overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
 }
 
 .checkout-screen.hidden {
@@ -1460,6 +1463,7 @@ body {
     padding: 48px;
     max-width: 700px;
     width: 100%;
+    min-height: min-content;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
     border: 1px solid var(--border-color);
     animation: slideUp 0.5s ease-out;
@@ -1473,6 +1477,7 @@ body {
     margin-bottom: 32px;
     padding-bottom: 24px;
     border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
 }
 
 .checkout-header h1 {
@@ -2138,8 +2143,54 @@ body {
         width: 100%;
     }
     
+    /* Checkout: full viewport on mobile, header never cut off */
+    .checkout-screen {
+        align-items: flex-start;
+        padding: 0;
+        padding-top: env(safe-area-inset-top, 0);
+    }
+    
     .checkout-content {
-        padding: 32px 24px;
+        padding: 20px 24px 32px;
+        padding-top: max(20px, env(safe-area-inset-top, 20px));
+        padding-bottom: max(32px, env(safe-area-inset-bottom, 32px));
+        max-width: 100%;
+        width: 100%;
+        min-height: 100%;
+        min-height: 100dvh;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        box-shadow: none;
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .checkout-header {
+        position: sticky;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: var(--bg-card);
+        z-index: 2;
+        margin-bottom: 24px;
+        padding: 0 0 16px;
+        border-bottom: 1px solid var(--border-color);
+        flex-shrink: 0;
+    }
+    
+    .checkout-body {
+        flex: 1;
+        min-height: 0;
+    }
+    
+    .checkout-actions {
+        flex-shrink: 0;
+        padding-top: 20px;
+        margin-top: 8px;
+        border-top: 1px solid var(--border-color);
     }
     
     .checkout-header h1 {
@@ -2193,14 +2244,6 @@ body {
         padding-bottom: env(safe-area-inset-bottom, 0);
     }
     
-    .checkout-content {
-        padding-bottom: env(safe-area-inset-bottom, 24px);
-        max-height: 100vh;
-        max-height: 100dvh;
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-    }
-    
     .checkout-age-verification .klarna-buttons {
         width: 100%;
     }
@@ -2252,9 +2295,18 @@ body {
         width: 100%;
     }
     
+    .age-verification-modal {
+        padding: 12px;
+        padding-top: max(12px, env(safe-area-inset-top, 12px));
+        align-items: flex-start;
+    }
+    
     .age-verification-content {
         padding: 24px 16px;
-        margin: 12px;
+        margin: 0;
+        max-height: calc(100dvh - 24px);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
     }
     
     .verification-header h1 {
@@ -2267,11 +2319,21 @@ body {
     }
     
     .checkout-content {
-        padding: 24px 16px;
+        padding: 16px;
+        padding-top: max(16px, env(safe-area-inset-top, 16px));
+        padding-bottom: max(24px, env(safe-area-inset-bottom, 24px));
     }
     
     .checkout-header h1 {
         font-size: 1.35rem;
+    }
+    
+    .checkout-section {
+        margin-bottom: 24px;
+    }
+    
+    .checkout-section h2 {
+        font-size: 1.25rem;
     }
     
     .section-title {
