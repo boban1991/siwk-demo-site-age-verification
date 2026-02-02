@@ -121,6 +121,7 @@ window.updateCartQuantity = updateCartQuantity;
 window.removeFromCart = removeFromCart;
 
 // Checkout function - must be defined before DOMContentLoaded
+// Does NOT clear cart; cart is cleared only when user clicks "Place order"
 function proceedToCheckout() {
     try {
         console.log('proceedToCheckout called');
@@ -135,18 +136,21 @@ function proceedToCheckout() {
         const cartModal = document.getElementById('cart-modal');
         if (cartModal) cartModal.classList.add('hidden');
         
-        // Show checkout screen
         const checkoutScreen = document.getElementById('checkout-screen');
         const checkoutItems = document.getElementById('checkout-items');
         const checkoutSubtotal = document.getElementById('checkout-subtotal');
         const checkoutTotal = document.getElementById('checkout-total');
+        const ageVerificationSection = document.getElementById('checkout-age-verification-section');
+        const placeOrderBtn = document.getElementById('place-order-btn');
+        const continueShoppingBtn = document.getElementById('continue-shopping-btn');
+        const orderCompleteSection = document.getElementById('checkout-order-complete-section');
         
         if (!checkoutScreen || !checkoutItems) {
             console.error('Checkout screen elements not found');
             return;
         }
         
-        // Populate checkout items
+        // Populate checkout items (cart is NOT cleared here)
         const subtotal = getCartTotal();
         checkoutItems.innerHTML = cart.map(item => `
             <div class="checkout-item">
@@ -160,69 +164,51 @@ function proceedToCheckout() {
             </div>
         `).join('');
         
-        // Update totals
         if (checkoutSubtotal) checkoutSubtotal.textContent = `$${subtotal.toFixed(2)}`;
         if (checkoutTotal) checkoutTotal.textContent = `$${subtotal.toFixed(2)}`;
         
-        // Get and display customer profile data if available
-        console.log('=== Checkout: Customer Profile Debug ===');
-        console.log('Global profile:', globalCustomerProfile);
-        console.log('localStorage key exists:', !!localStorage.getItem(CUSTOMER_PROFILE_KEY));
-        console.log('sessionStorage key exists:', !!sessionStorage.getItem(CUSTOMER_PROFILE_SESSION_KEY));
+        const hasAgeRestricted = hasAgeRestrictedProducts();
+        const isVerified = checkVerificationStatus();
         
-        const customerProfile = getStoredCustomerProfile();
-        console.log('Retrieved customer profile:', customerProfile);
-        console.log('Profile type:', typeof customerProfile);
-        console.log('Profile is object:', customerProfile && typeof customerProfile === 'object');
-        if (customerProfile) {
-            console.log('Profile keys:', Object.keys(customerProfile));
+        // Show age verification at checkout when needed; otherwise show Place order
+        if (ageVerificationSection) {
+            if (hasAgeRestricted && !isVerified) {
+                ageVerificationSection.classList.remove('hidden');
+                sessionStorage.setItem('checkout_pending', 'true');
+                if (placeOrderBtn) placeOrderBtn.classList.add('hidden');
+            } else {
+                ageVerificationSection.classList.add('hidden');
+                sessionStorage.removeItem('checkout_pending');
+                if (placeOrderBtn) placeOrderBtn.classList.remove('hidden');
+            }
         }
+        if (placeOrderBtn && (!hasAgeRestricted || isVerified)) {
+            placeOrderBtn.classList.remove('hidden');
+        }
+        if (orderCompleteSection) orderCompleteSection.classList.add('hidden');
+        if (continueShoppingBtn) continueShoppingBtn.classList.remove('hidden');
         
+        // Customer profile (when verified)
+        const customerProfile = getStoredCustomerProfile();
         const customerDataSection = document.getElementById('checkout-customer-data');
         const customerProfileData = document.getElementById('checkout-profile-data');
-        
-        console.log('Customer data section found:', !!customerDataSection);
-        console.log('Customer profile data element found:', !!customerProfileData);
         
         if (customerDataSection && customerProfileData) {
             if (customerProfile && typeof customerProfile === 'object') {
                 const profileHTML = formatCustomerProfileForCheckout(customerProfile);
-                console.log('Generated profile HTML:', profileHTML);
-                console.log('Profile HTML length:', profileHTML.length);
-                
-                if (profileHTML && profileHTML.length > 50) { // More than just the wrapper divs
+                if (profileHTML && profileHTML.length > 50) {
                     customerProfileData.innerHTML = profileHTML;
                     customerDataSection.style.display = 'block';
-                    console.log('✅ Customer profile section displayed with content');
                 } else {
-                    console.warn('⚠️ Profile HTML is empty or too short, showing raw data as fallback');
-                    // Show raw data as fallback
-                    const rawDataHTML = `
-                        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 10px 0;">
-                            <h3 style="margin-top: 0; color: var(--text-primary);">Customer Profile Data</h3>
-                            <pre style="background: white; padding: 15px; border-radius: 4px; overflow-x: auto; font-size: 12px; color: var(--text-primary);">${JSON.stringify(customerProfile, null, 2)}</pre>
-                        </div>
-                    `;
-                    customerProfileData.innerHTML = rawDataHTML;
+                    customerProfileData.innerHTML = `<pre style="font-size: 12px;">${JSON.stringify(customerProfile, null, 2)}</pre>`;
                     customerDataSection.style.display = 'block';
                 }
             } else {
-                console.log('No valid customer profile found, hiding section');
-                console.log('Profile value:', customerProfile);
-                console.log('Profile type:', typeof customerProfile);
                 customerDataSection.style.display = 'none';
             }
-        } else {
-            console.error('❌ Missing elements: customerDataSection=', !!customerDataSection, 'customerProfileData=', !!customerProfileData);
         }
         
-        // Show checkout screen
         checkoutScreen.classList.remove('hidden');
-        
-        // Clear cart after showing checkout
-        saveCart([]);
-        updateCartUI();
-        sessionStorage.removeItem('checkout_pending');
         
     } catch (error) {
         console.error('Error in proceedToCheckout:', error);
@@ -456,11 +442,14 @@ function getStoredCustomerProfile() {
     return null;
 }
 
-// Initialize Klarna Identity API flow (env: 'test' | 'production')
-async function initiateKlarnaIdentityFlow(env) {
+// Initialize Klarna Identity API flow (env: 'test' | 'production', fromCheckout: optional boolean)
+async function initiateKlarnaIdentityFlow(env, fromCheckout) {
     const isProduction = env === 'production';
-    const klarnaVerifyBtn = document.getElementById(isProduction ? 'klarna-verify-btn-production' : 'klarna-verify-btn');
-    const verificationResult = document.getElementById('verification-result');
+    const btnId = fromCheckout
+        ? (isProduction ? 'checkout-klarna-verify-btn-production' : 'checkout-klarna-verify-btn')
+        : (isProduction ? 'klarna-verify-btn-production' : 'klarna-verify-btn');
+    const klarnaVerifyBtn = document.getElementById(btnId);
+    const verificationResult = document.getElementById(fromCheckout ? 'checkout-verification-result' : 'verification-result');
     const spinnerColor = isProduction ? '#1A1A1A' : 'white';
 
     if (!klarnaVerifyBtn) return;
@@ -558,8 +547,8 @@ async function initiateKlarnaIdentityFlow(env) {
             errorMessage = error.message;
         }
         
-        // Show error message with details
-        const resultEl = document.getElementById('verification-result');
+        // Show error message with details (use same result element as context)
+        const resultEl = verificationResult || document.getElementById('verification-result');
         if (resultEl) {
             // Show a user-friendly message, but log full details to console
             const userMessage = errorMessage.length > 200 ? errorMessage.substring(0, 200) + '... (check console for full details)' : errorMessage;
@@ -573,7 +562,7 @@ async function initiateKlarnaIdentityFlow(env) {
             alert(errorMessage);
         }
         
-        // Reset the button that was clicked
+        // Reset the button that was clicked (same structure for modal and checkout)
         klarnaVerifyBtn.disabled = false;
         klarnaVerifyBtn.innerHTML = `
             <span class="klarna-button-text">Continue with</span>
@@ -1000,7 +989,11 @@ document.addEventListener('DOMContentLoaded', () => {
             setVerificationStatus(true);
             showResult(`Age verified! You are ${age} years old.`, 'success');
             setTimeout(() => {
-                showMainContent();
+                if (sessionStorage.getItem('checkout_pending') === 'true') {
+                    proceedToCheckout();
+                } else {
+                    showMainContent();
+                }
             }, 1500);
         } else {
             showResult(`Sorry, you must be 18 years or older. You are currently ${age} years old.`, 'error');
@@ -1282,46 +1275,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // Checkout button - trigger age verification if needed
-    // Use event delegation to ensure it works even if button is recreated
+    // Checkout button - always go to checkout first; age verification happens ON the checkout page
     const handleCheckout = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log('Checkout button clicked');
-        
         const cart = getCart();
-        console.log('Cart:', cart);
-        
         if (cart.length === 0) {
             alert('Your cart is empty');
             return;
         }
-        
-        // Check if cart has age-restricted products
-        const hasAgeRestricted = hasAgeRestrictedProducts();
-        console.log('Has age-restricted products:', hasAgeRestricted);
-        
-        if (hasAgeRestricted) {
-            // Check if user is already verified
-            const isVerified = checkVerificationStatus();
-            console.log('Is verified:', isVerified);
-            
-            if (!isVerified) {
-                // Show age verification modal
-                if (cartModal) cartModal.classList.add('hidden');
-                showAgeVerification();
-                // Store that we're in checkout flow
-                sessionStorage.setItem('checkout_pending', 'true');
-            } else {
-                // Already verified, proceed to checkout
-                console.log('Proceeding to checkout (already verified)');
-                proceedToCheckout();
-            }
-        } else {
-            // No age-restricted products, proceed directly to checkout
-            console.log('Proceeding to checkout (no age-restricted products)');
-            proceedToCheckout();
-        }
+        proceedToCheckout();
     };
     
     // Attach directly if button exists
@@ -1348,6 +1311,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const checkoutScreen = document.getElementById('checkout-screen');
     const closeCheckoutBtn = document.getElementById('close-checkout-btn');
     const continueShoppingBtn = document.getElementById('continue-shopping-btn');
+    const placeOrderBtn = document.getElementById('place-order-btn');
     
     if (closeCheckoutBtn) {
         closeCheckoutBtn.addEventListener('click', () => {
@@ -1358,8 +1322,55 @@ document.addEventListener('DOMContentLoaded', () => {
     if (continueShoppingBtn) {
         continueShoppingBtn.addEventListener('click', () => {
             if (checkoutScreen) checkoutScreen.classList.add('hidden');
-            // Scroll to top
             window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    }
+    
+    if (placeOrderBtn) {
+        placeOrderBtn.addEventListener('click', () => {
+            saveCart([]);
+            updateCartUI();
+            placeOrderBtn.classList.add('hidden');
+            const orderCompleteSection = document.getElementById('checkout-order-complete-section');
+            if (orderCompleteSection) orderCompleteSection.classList.remove('hidden');
+            if (continueShoppingBtn) continueShoppingBtn.focus();
+        });
+    }
+    
+    // Checkout page: Klarna buttons (verify age at checkout)
+    const checkoutKlarnaBtn = document.getElementById('checkout-klarna-verify-btn');
+    const checkoutKlarnaBtnProd = document.getElementById('checkout-klarna-verify-btn-production');
+    if (checkoutKlarnaBtn) checkoutKlarnaBtn.addEventListener('click', () => initiateKlarnaIdentityFlow('test', true));
+    if (checkoutKlarnaBtnProd) checkoutKlarnaBtnProd.addEventListener('click', () => initiateKlarnaIdentityFlow('production', true));
+    
+    // Checkout page: manual age verification form
+    const checkoutManualForm = document.getElementById('checkout-manual-verification-form');
+    const checkoutBirthdate = document.getElementById('checkout-birthdate');
+    const checkoutVerificationResult = document.getElementById('checkout-verification-result');
+    if (checkoutManualForm && checkoutBirthdate && checkoutVerificationResult) {
+        checkoutManualForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const birthdate = checkoutBirthdate.value;
+            if (!birthdate) {
+                checkoutVerificationResult.textContent = 'Please enter your date of birth.';
+                checkoutVerificationResult.className = 'verification-result error';
+                checkoutVerificationResult.style.display = 'block';
+                return;
+            }
+            const age = calculateAge(new Date(birthdate));
+            if (age >= 18) {
+                setVerificationStatus(true);
+                checkoutVerificationResult.textContent = `Age verified! You are ${age} years old.`;
+                checkoutVerificationResult.className = 'verification-result success';
+                checkoutVerificationResult.style.display = 'block';
+                setTimeout(() => {
+                    proceedToCheckout();
+                }, 1200);
+            } else {
+                checkoutVerificationResult.textContent = `You must be 18 or older. You are ${age} years old.`;
+                checkoutVerificationResult.className = 'verification-result error';
+                checkoutVerificationResult.style.display = 'block';
+            }
         });
     }
 });
