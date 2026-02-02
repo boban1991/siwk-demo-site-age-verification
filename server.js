@@ -16,11 +16,25 @@ app.use(express.json());
 // Base URLs per docs: Production https://api-global.klarna.com | Test https://api-global.test.klarna.com
 // Auth: Basic Auth (username:api_key base64). Required headers: Klarna-Idempotency-Key, Content-Type.
 // Template variables in return_url per docs: {klarna.identity_request.id}, {klarna.identity_request.state}
+// On Vercel, VERCEL_URL is set (e.g. "app.vercel.app" or "xxx-git-branch-team.vercel.app") - use it when env-specific return URL is not set.
+const DEFAULT_BASE_URL = 'https://siwk-demo-site-age-verification.vercel.app';
+
+function getVercelBaseUrl() {
+  const v = process.env.VERCEL_URL;
+  if (!v || typeof v !== 'string') return DEFAULT_BASE_URL;
+  return v.startsWith('http') ? v : `https://${v}`;
+}
+
 function buildReturnUrl(envVar, fallback) {
-  const url = process.env[envVar] || (process.env.VERCEL_URL
-    ? (process.env.VERCEL_URL.startsWith('http') ? process.env.VERCEL_URL : `https://${process.env.VERCEL_URL}`)
-    : fallback);
-  return url && url.startsWith('http') ? url : `https://${url || fallback}`;
+  const explicit = process.env[envVar];
+  if (explicit && typeof explicit === 'string' && explicit.trim().length > 0) {
+    const url = explicit.trim();
+    return url.startsWith('http') ? url : `https://${url}`;
+  }
+  const base = getVercelBaseUrl();
+  const url = (typeof fallback === 'string' && fallback) ? fallback : base;
+  const final = url.startsWith('http') ? url : `https://${url}`;
+  return final;
 }
 
 const KLARNA_CONFIG_TEST = {
@@ -28,7 +42,7 @@ const KLARNA_CONFIG_TEST = {
   apiKey: process.env.KLARNA_PASSWORD,
   apiUrl: (process.env.KLARNA_BASE_URL || 'https://api-global.test.klarna.com').replace(/\/$/, ''),
   accountId: process.env.KLARNA_ACCOUNT_ID,
-  returnUrl: buildReturnUrl('KLARNA_RETURN_URL', 'https://siwk-demo-site-age-verification.vercel.app'),
+  returnUrl: buildReturnUrl('KLARNA_RETURN_URL', getVercelBaseUrl()),
   customerRegion: process.env.KLARNA_CUSTOMER_REGION || 'krn:partner:eu1:region',
   callbackPath: '/api/klarna/callback'
 };
@@ -38,7 +52,7 @@ const KLARNA_CONFIG_PROD = {
   apiKey: process.env.KLARNA_PROD_PASSWORD,
   apiUrl: (process.env.KLARNA_PROD_BASE_URL || 'https://api-global.klarna.com').replace(/\/$/, ''),
   accountId: process.env.KLARNA_PROD_ACCOUNT_ID,
-  returnUrl: buildReturnUrl('KLARNA_PROD_RETURN_URL', process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://siwk-demo-site-age-verification.vercel.app'),
+  returnUrl: buildReturnUrl('KLARNA_PROD_RETURN_URL', getVercelBaseUrl()),
   customerRegion: process.env.KLARNA_PROD_CUSTOMER_REGION || 'krn:partner:eu1:region',
   callbackPath: '/api/klarna/production/callback'
 };
@@ -221,8 +235,16 @@ app.post('/api/klarna/identity/request', async (req, res) => {
 
     const idempotencyKey = crypto.randomUUID();
     const accountId = config.accountId;
-    const baseUrl = config.returnUrl.replace(/\/$/, '');
+    let baseUrl = (config.returnUrl && String(config.returnUrl).trim()) || getVercelBaseUrl();
+    baseUrl = baseUrl.replace(/\/$/, '');
+    if (!baseUrl.startsWith('https://')) {
+      baseUrl = baseUrl.startsWith('http') ? baseUrl : `https://${baseUrl}`;
+    }
     const returnUrl = `${baseUrl}${config.callbackPath}?identity_request_id={klarna.identity_request.id}&state={klarna.identity_request.state}`;
+    if (!returnUrl || !returnUrl.startsWith('https://')) {
+      console.error('[Identity] Invalid return URL', { env, baseUrl, returnUrl: returnUrl ? 'set' : 'undefined' });
+      return res.status(500).json({ error: 'Return URL is not configured. Set KLARNA_RETURN_URL (test) or KLARNA_PROD_RETURN_URL (production), or ensure VERCEL_URL is set.' });
+    }
 
     const identityRequest = {
       request_customer_token: {
