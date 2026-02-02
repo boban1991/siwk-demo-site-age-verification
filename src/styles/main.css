@@ -238,11 +238,24 @@ body {
     width: 100%;
 }
 
-/* Klarna Branded Button */
+/* Klarna buttons container – same width and alignment */
+.klarna-buttons {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Klarna Branded Button – both buttons share same width for alignment */
 .klarna-button {
     width: 100%;
-    min-width: 48px;
+    min-width: 0; /* allow flex to shrink evenly */
     height: 56px;
+    box-sizing: border-box;
+    margin: 0;
+    flex-shrink: 0;
     background: #1A1A1A; /* Dark charcoal/black background */
     color: #FFFFFF;
     border: none;
@@ -311,7 +324,6 @@ body {
 
 /* Production flow button: slightly different look (outline) */
 .klarna-button-production {
-    margin-top: 8px;
     background: #FFFFFF;
     color: #1A1A1A;
     border: 2px solid #1A1A1A;
@@ -340,11 +352,18 @@ body {
     color: #2E7D32;
 }
 
-/* Responsive adjustments */
+.klarna-env-badge-playground {
+    background: #E3F2FD;
+    color: #1565C0;
+}
+
+/* Responsive adjustments – keep same alignment */
 @media (max-width: 400px) {
-    .klarna-button {
+    .klarna-buttons .klarna-button {
         padding: 0 16px;
         height: 52px;
+        width: 100%;
+        margin: 0;
     }
     
     .klarna-button-text {

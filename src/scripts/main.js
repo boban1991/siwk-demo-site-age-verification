@@ -475,7 +475,7 @@ async function initiateKlarnaIdentityFlow(env) {
         </svg>
         <span class="klarna-button-text">Creating request...</span>
         <span class="klarna-pill">Klarna</span>
-        ${isProduction ? '<span class="klarna-env-badge">Production</span>' : ''}
+        ${isProduction ? '<span class="klarna-env-badge">Production</span>' : '<span class="klarna-env-badge klarna-env-badge-playground">Playground</span>'}
     `;
 
     try {
@@ -578,7 +578,7 @@ async function initiateKlarnaIdentityFlow(env) {
         klarnaVerifyBtn.innerHTML = `
             <span class="klarna-button-text">Continue with</span>
             <span class="klarna-pill">Klarna</span>
-            ${isProduction ? '<span class="klarna-env-badge">Production</span>' : ''}
+            ${isProduction ? '<span class="klarna-env-badge">Production</span>' : '<span class="klarna-env-badge klarna-env-badge-playground">Playground</span>'}
         `;
     }
 }
